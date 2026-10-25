@@ -44,39 +44,26 @@ public class DineTrack {
     }
 
     private static void ensureDatabaseConnection() {
-        if (Database.testConnection()) {
-            System.out.println("[Connected] MySQL database connected: " + Database.getDatabaseName());
-            return;
+        String[] candidatePasswords = {"root", "", "admin", "1234", "12345678", "root123", "password"};
+        for (String pwd : candidatePasswords) {
+            if (Database.tryConnect(pwd)) {
+                Database.setPassword(pwd);
+                System.out.println("[Connected] MySQL database connected: " + Database.getDatabaseName());
+                return;
+            }
         }
 
-        System.out.println("\nCould not connect to MySQL with user '" + Database.getUser() + "'.");
-        System.out.println("Please enter your MySQL connection settings:");
-
+        System.out.println("\nMySQL is running, but requires password authentication.");
         while (true) {
-            System.out.print("MySQL Host [localhost]: ");
-            String host = scanner.nextLine().trim();
-            if (host.isEmpty()) host = "localhost";
-
-            int port = promptInt("MySQL Port [3306]: ", 1, 65535, 3306);
-
-            System.out.print("Database Name [dinetrack]: ");
-            String db = scanner.nextLine().trim();
-            if (db.isEmpty()) db = "dinetrack";
-
-            System.out.print("MySQL Username [root]: ");
-            String user = scanner.nextLine().trim();
-            if (user.isEmpty()) user = "root";
-
-            System.out.print("MySQL Password: ");
+            System.out.print("Enter your MySQL root password (press Enter if no password): ");
             String pwd = scanner.nextLine();
-
-            Database.setCredentials(host, port, db, user, pwd);
-            if (Database.testConnection()) {
+            if (Database.tryConnect(pwd)) {
+                Database.setPassword(pwd);
                 System.out.println("[Connected] Database connected successfully!\n");
                 break;
             } else {
-                System.out.println("[Failed] Could not connect. Please check MySQL service.\n");
-                System.out.print("Retry connection? (y/n): ");
+                System.out.println("[Failed] Could not connect with that password. Please try again.\n");
+                System.out.print("Retry? (y/n): ");
                 if (!scanner.nextLine().trim().equalsIgnoreCase("y")) {
                     System.out.println("Exiting application.");
                     System.exit(1);
@@ -693,6 +680,10 @@ class Database {
         password = pwd;
     }
 
+    public static synchronized void setPassword(String pwd) {
+        password = pwd;
+    }
+
     public static String getUrl() {
         return "jdbc:mysql://" + host + ":" + port + "/" + databaseName + "?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
     }
@@ -701,12 +692,41 @@ class Database {
         return DriverManager.getConnection(getUrl(), user, password);
     }
 
-    public static boolean testConnection() {
-        try (Connection conn = getConnection()) {
+    public static boolean tryConnect(String pwd) {
+        try (Connection conn = DriverManager.getConnection(getUrl(), user, pwd)) {
             return conn != null && !conn.isClosed();
         } catch (SQLException e) {
+            if (e.getErrorCode() == 1049) {
+                return initDatabase(pwd);
+            }
             return false;
         }
+    }
+
+    public static boolean initDatabase(String pwd) {
+        String serverUrl = "jdbc:mysql://" + host + ":" + port + "/?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC";
+        try (Connection conn = DriverManager.getConnection(serverUrl, user, pwd);
+             Statement stmt = conn.createStatement()) {
+            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS " + databaseName + " CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+            java.io.File sqlFile = new java.io.File("dinetrack.sql");
+            if (sqlFile.exists()) {
+                String content = java.nio.file.Files.readString(sqlFile.toPath());
+                stmt.execute("USE " + databaseName);
+                for (String part : content.split(";")) {
+                    String sql = part.trim();
+                    if (!sql.isEmpty()) {
+                        stmt.execute(sql);
+                    }
+                }
+            }
+            return true;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    public static boolean testConnection() {
+        return tryConnect(password);
     }
 
     public static String getUser() { return user; }
