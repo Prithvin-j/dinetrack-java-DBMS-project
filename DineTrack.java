@@ -3,6 +3,667 @@ import java.math.RoundingMode;
 import java.sql.*;
 import java.util.*;
 
+public class DineTrack {
+    private static final Scanner scanner = new Scanner(System.in);
+    private static final CustomerDAO customerDAO = new CustomerDAO();
+    private static final FoodDAO foodDAO = new FoodDAO();
+    private static final OrderDAO orderDAO = new OrderDAO();
+    private static final PaymentDAO paymentDAO = new PaymentDAO();
+    private static final ReportDAO reportDAO = new ReportDAO();
+
+    public static void main(String[] args) {
+        printBanner();
+        ensureDatabaseConnection();
+
+        boolean running = true;
+        while (running) {
+            try {
+                printMainMenu();
+                int choice = promptInt("Enter your choice (1-8): ", 1, 8);
+                switch (choice) {
+                    case 1 -> customerMenu();
+                    case 2 -> foodMenu();
+                    case 3 -> createOrderWorkflow();
+                    case 4 -> viewOrdersWorkflow();
+                    case 5 -> updateOrderStatusWorkflow();
+                    case 6 -> paymentWorkflow();
+                    case 7 -> reportsMenu();
+                    case 8 -> {
+                        running = false;
+                        System.out.println("\nThank you for using DineTrack. Goodbye!");
+                    }
+                }
+            } catch (InvalidOrderException e) {
+                System.out.println("\n[Order Error] " + e.getMessage());
+            } catch (DataAccessException e) {
+                System.out.println("\n[Database Notice] " + e.getMessage());
+            } catch (Exception e) {
+                System.out.println("\n[Error] " + e.getMessage());
+            }
+        }
+    }
+
+    private static void ensureDatabaseConnection() {
+        if (Database.testConnection()) {
+            System.out.println("[Connected] MySQL database connected: " + Database.getDatabaseName());
+            return;
+        }
+
+        System.out.println("\nCould not connect to MySQL with user '" + Database.getUser() + "'.");
+        System.out.println("Please enter your MySQL connection settings:");
+
+        while (true) {
+            System.out.print("MySQL Host [localhost]: ");
+            String host = scanner.nextLine().trim();
+            if (host.isEmpty()) host = "localhost";
+
+            int port = promptInt("MySQL Port [3306]: ", 1, 65535, 3306);
+
+            System.out.print("Database Name [dinetrack]: ");
+            String db = scanner.nextLine().trim();
+            if (db.isEmpty()) db = "dinetrack";
+
+            System.out.print("MySQL Username [root]: ");
+            String user = scanner.nextLine().trim();
+            if (user.isEmpty()) user = "root";
+
+            System.out.print("MySQL Password: ");
+            String pwd = scanner.nextLine();
+
+            Database.setCredentials(host, port, db, user, pwd);
+            if (Database.testConnection()) {
+                System.out.println("[Connected] Database connected successfully!\n");
+                break;
+            } else {
+                System.out.println("[Failed] Could not connect. Please check MySQL service.\n");
+                System.out.print("Retry connection? (y/n): ");
+                if (!scanner.nextLine().trim().equalsIgnoreCase("y")) {
+                    System.out.println("Exiting application.");
+                    System.exit(1);
+                }
+            }
+        }
+    }
+
+    private static void printBanner() {
+        System.out.println("==========================================================================");
+        System.out.println("                  DINETRACK RESTAURANT MANAGEMENT SYSTEM                  ");
+        System.out.println("==========================================================================");
+    }
+
+    private static void printMainMenu() {
+        System.out.println("\n============================= MAIN MENU ==================================");
+        System.out.println("  1. Customer Management       (Add, View, Update, Delete, Search)");
+        System.out.println("  2. Food Menu Management      (Add, View, Update, Stock Status)");
+        System.out.println("  3. Create New Order          (Select items and place order)");
+        System.out.println("  4. View Orders & Invoices    (Order history and detailed bill)");
+        System.out.println("  5. Update Order Status       (Placed, Preparing, Ready, Completed)");
+        System.out.println("  6. Payment Processing        (Cash, Card, UPI payment)");
+        System.out.println("  7. Reports & Statistics      (Dashboard & Top selling foods)");
+        System.out.println("  8. Exit");
+        System.out.println("==========================================================================");
+    }
+
+    private static void customerMenu() {
+        boolean back = false;
+        while (!back) {
+            System.out.println("\n--- CUSTOMER MANAGEMENT ---");
+            System.out.println("1. Add New Customer");
+            System.out.println("2. View All Customers");
+            System.out.println("3. Search Customer (by Name / Phone / Email)");
+            System.out.println("4. Update Customer Information");
+            System.out.println("5. Delete Customer");
+            System.out.println("6. Back to Main Menu");
+            int choice = promptInt("Choice (1-6): ", 1, 6);
+
+            switch (choice) {
+                case 1 -> {
+                    System.out.println("\n[Register New Customer]");
+                    String name = promptNonEmptyString("Enter Customer Name: ");
+                    String phone = promptRegexString("Enter Phone (7-15 digits): ", "^[0-9+() -]{7,15}$", "Invalid phone format.");
+                    String email = promptRegexString("Enter Email: ", "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", "Invalid email format.");
+                    Customer c = new Customer(0, name, phone, email);
+                    int id = customerDAO.add(c);
+                    System.out.println(">> Success: Customer registered with ID #" + id);
+                }
+                case 2 -> displayCustomerList(customerDAO.getAll());
+                case 3 -> {
+                    System.out.print("Enter search term (Name/Phone/Email): ");
+                    String query = scanner.nextLine().trim();
+                    displayCustomerList(customerDAO.search(query));
+                }
+                case 4 -> {
+                    int id = promptInt("Enter Customer ID to update: ");
+                    Customer existing = customerDAO.getById(id);
+                    if (existing == null) {
+                        System.out.println(">> Customer not found with ID #" + id);
+                        break;
+                    }
+                    System.out.println("Current Details: " + existing);
+                    System.out.print("Enter New Name (leave blank to keep '" + existing.getName() + "'): ");
+                    String n = scanner.nextLine().trim();
+                    if (!n.isEmpty()) existing.setName(n);
+
+                    System.out.print("Enter New Phone (leave blank to keep '" + existing.getPhone() + "'): ");
+                    String p = scanner.nextLine().trim();
+                    if (!p.isEmpty()) existing.setPhone(p);
+
+                    System.out.print("Enter New Email (leave blank to keep '" + existing.getEmail() + "'): ");
+                    String e = scanner.nextLine().trim();
+                    if (!e.isEmpty()) existing.setEmail(e);
+
+                    if (customerDAO.update(existing)) {
+                        System.out.println(">> Success: Customer details updated!");
+                    } else {
+                        System.out.println(">> Could not update customer.");
+                    }
+                }
+                case 5 -> {
+                    int id = promptInt("Enter Customer ID to delete: ");
+                    System.out.print("Are you sure you want to delete customer #" + id + "? (yes/no): ");
+                    if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
+                        if (customerDAO.delete(id)) {
+                            System.out.println(">> Success: Customer deleted.");
+                        } else {
+                            System.out.println(">> Customer not found.");
+                        }
+                    } else {
+                        System.out.println(">> Deletion cancelled.");
+                    }
+                }
+                case 6 -> back = true;
+            }
+        }
+    }
+
+    private static void displayCustomerList(List<Customer> list) {
+        if (list.isEmpty()) {
+            System.out.println("\nNo customer records found.");
+            return;
+        }
+        System.out.println("\n----------------------------------------------------------------------------------");
+        System.out.printf("%-5s | %-22s | %-16s | %-26s | %s\n", "ID", "Name", "Phone", "Email", "Role");
+        System.out.println("------+------------------------+------------------+----------------------------+-----------");
+        for (Customer c : list) {
+            System.out.printf("%-5d | %-22s | %-16s | %-26s | %s\n",
+                    c.getId(), c.getName(), c.getPhone(), c.getEmail(), c.getRole());
+        }
+        System.out.println("----------------------------------------------------------------------------------");
+    }
+
+    private static void foodMenu() {
+        boolean back = false;
+        while (!back) {
+            System.out.println("\n--- FOOD MENU MANAGEMENT ---");
+            System.out.println("1. View Full Menu (All Items)");
+            System.out.println("2. View Available Items Only");
+            System.out.println("3. Add New Food Item");
+            System.out.println("4. Update Food Item Details");
+            System.out.println("5. Toggle Stock Availability");
+            System.out.println("6. Delete Food Item");
+            System.out.println("7. Back to Main Menu");
+            int choice = promptInt("Choice (1-7): ", 1, 7);
+
+            switch (choice) {
+                case 1 -> displayFoodList(foodDAO.getAll(false));
+                case 2 -> displayFoodList(foodDAO.getAll(true));
+                case 3 -> {
+                    System.out.println("\n[Add New Food Item]");
+                    String name = promptNonEmptyString("Item Name: ");
+                    String category = promptNonEmptyString("Category: ");
+                    BigDecimal price = promptPositiveBigDecimal("Price (Rs.): ");
+                    System.out.print("Is it currently available? (yes/no) [yes]: ");
+                    String availStr = scanner.nextLine().trim();
+                    boolean avail = availStr.isEmpty() || availStr.equalsIgnoreCase("yes") || availStr.equalsIgnoreCase("y");
+
+                    Food f = new Food(0, name, category, price, avail);
+                    int id = foodDAO.add(f);
+                    System.out.println(">> Success: Food item added to menu with ID #" + id);
+                }
+                case 4 -> {
+                    int id = promptInt("Enter Food ID to update: ");
+                    Food f = foodDAO.getById(id);
+                    if (f == null) {
+                        System.out.println(">> Food item not found with ID #" + id);
+                        break;
+                    }
+                    System.out.println("Current: " + f);
+                    System.out.print("Enter New Name (leave blank to keep '" + f.getName() + "'): ");
+                    String n = scanner.nextLine().trim();
+                    if (!n.isEmpty()) f.setName(n);
+
+                    System.out.print("Enter New Category (leave blank to keep '" + f.getCategory() + "'): ");
+                    String c = scanner.nextLine().trim();
+                    if (!c.isEmpty()) f.setCategory(c);
+
+                    System.out.print("Enter New Price (leave blank to keep Rs. " + f.getPrice() + "): ");
+                    String pStr = scanner.nextLine().trim();
+                    if (!pStr.isEmpty()) {
+                        f.setPrice(new BigDecimal(pStr));
+                    }
+
+                    System.out.print("Available? (yes/no, leave blank to keep " + (f.isAvailable() ? "yes" : "no") + "): ");
+                    String aStr = scanner.nextLine().trim();
+                    if (!aStr.isEmpty()) {
+                        f.setAvailable(aStr.equalsIgnoreCase("yes") || aStr.equalsIgnoreCase("y"));
+                    }
+
+                    if (foodDAO.update(f)) {
+                        System.out.println(">> Success: Menu item updated!");
+                    } else {
+                        System.out.println(">> Failed to update menu item.");
+                    }
+                }
+                case 5 -> {
+                    int id = promptInt("Enter Food ID to toggle availability: ");
+                    Food f = foodDAO.getById(id);
+                    if (f == null) {
+                        System.out.println(">> Food item not found with ID #" + id);
+                        break;
+                    }
+                    if (foodDAO.toggleAvailability(id)) {
+                        System.out.println(">> Success: Availability changed to: " + (!f.isAvailable() ? "AVAILABLE" : "OUT OF STOCK"));
+                    }
+                }
+                case 6 -> {
+                    int id = promptInt("Enter Food ID to delete: ");
+                    System.out.print("Are you sure you want to delete food #" + id + "? (yes/no): ");
+                    if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
+                        if (foodDAO.delete(id)) {
+                            System.out.println(">> Success: Food item removed from menu.");
+                        } else {
+                            System.out.println(">> Food item not found.");
+                        }
+                    }
+                }
+                case 7 -> back = true;
+            }
+        }
+    }
+
+    private static void displayFoodList(List<Food> list) {
+        if (list.isEmpty()) {
+            System.out.println("\nNo menu items found.");
+            return;
+        }
+        System.out.println("\n--------------------------------------------------------------------------------");
+        System.out.printf("%-5s | %-24s | %-16s | %-12s | %s\n", "ID", "Item Name", "Category", "Price", "Status");
+        System.out.println("------+--------------------------+------------------+--------------+------------");
+        for (Food f : list) {
+            System.out.printf("%-5d | %-24s | %-16s | Rs.%9.2f | %s\n",
+                    f.getId(), f.getName(), f.getCategory(), f.getPrice(),
+                    f.isAvailable() ? "In Stock" : "[Out of Stock]");
+        }
+        System.out.println("--------------------------------------------------------------------------------");
+    }
+
+    private static void createOrderWorkflow() throws InvalidOrderException {
+        System.out.println("\n========================== CREATE NEW ORDER ==============================");
+        int customerId = promptInt("Enter Customer ID: ");
+        Customer customer = customerDAO.getById(customerId);
+        if (customer == null) {
+            System.out.println(">> Customer #" + customerId + " not found!");
+            System.out.print("Would you like to quickly register this customer? (yes/no): ");
+            if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
+                String name = promptNonEmptyString("Customer Name: ");
+                String phone = promptRegexString("Phone: ", "^[0-9+() -]{7,15}$", "Invalid phone format.");
+                String email = promptRegexString("Email: ", "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", "Invalid email format.");
+                customerId = customerDAO.add(new Customer(0, name, phone, email));
+                customer = customerDAO.getById(customerId);
+                System.out.println(">> Registered! Proceeding with Customer #" + customerId + " (" + customer.getName() + ")");
+            } else {
+                return;
+            }
+        } else {
+            System.out.println("Customer Selected: " + customer.getName() + " (" + customer.getPhone() + ")");
+        }
+
+        System.out.println("\nAvailable Menu Items:");
+        displayFoodList(foodDAO.getAll(true));
+
+        Map<Integer, Integer> cart = new LinkedHashMap<>();
+        BigDecimal estimatedTotal = BigDecimal.ZERO;
+
+        while (true) {
+            System.out.print("\nEnter Food ID to add (or 0 to finish selection): ");
+            int foodId = promptInt("");
+            if (foodId == 0) break;
+
+            Food food = foodDAO.getById(foodId);
+            if (food == null) {
+                System.out.println(">> Invalid Food ID. Please choose from the menu.");
+                continue;
+            }
+            if (!food.isAvailable()) {
+                System.out.println(">> Sorry, '" + food.getName() + "' is currently out of stock.");
+                continue;
+            }
+
+            int qty = promptInt("Enter quantity for " + food.getName() + " (Rs. " + food.getPrice() + "): ", 1, 99);
+            cart.put(foodId, cart.getOrDefault(foodId, 0) + qty);
+
+            estimatedTotal = BigDecimal.ZERO;
+            System.out.println("\n--- Current Cart ---");
+            for (Map.Entry<Integer, Integer> e : cart.entrySet()) {
+                Food item = foodDAO.getById(e.getKey());
+                BigDecimal lineTotal = item.getPrice().multiply(BigDecimal.valueOf(e.getValue()));
+                estimatedTotal = estimatedTotal.add(lineTotal);
+                System.out.printf("  * %-20s x %2d = Rs.%7.2f\n", item.getName(), e.getValue(), lineTotal);
+            }
+            System.out.printf("Estimated Total: Rs. %.2f\n", estimatedTotal);
+        }
+
+        if (cart.isEmpty()) {
+            System.out.println(">> Order cancelled: No items selected.");
+            return;
+        }
+
+        System.out.print("\nConfirm order placement for Rs. " + estimatedTotal + "? (yes/no) [yes]: ");
+        String confirm = scanner.nextLine().trim();
+        if (!confirm.isEmpty() && !confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("y")) {
+            System.out.println(">> Order discarded.");
+            return;
+        }
+
+        int orderId = orderDAO.createOrder(customerId, cart);
+        System.out.println("\n==========================================================================");
+        System.out.println(">> ORDER PLACED SUCCESSFULLY! Order ID: #" + orderId);
+        System.out.println(">> Status: PLACED | Total Amount: Rs. " + estimatedTotal);
+        System.out.println("==========================================================================");
+
+        System.out.print("\nWould you like to process payment for Order #" + orderId + " now? (yes/no) [yes]: ");
+        String payNow = scanner.nextLine().trim();
+        if (payNow.isEmpty() || payNow.equalsIgnoreCase("yes") || payNow.equalsIgnoreCase("y")) {
+            processPaymentForOrder(orderId);
+        }
+    }
+
+    private static void viewOrdersWorkflow() {
+        System.out.println("\n--- VIEW ORDERS & BILLS ---");
+        System.out.println("1. List All Recent Orders");
+        System.out.println("2. View Detailed Order Invoice / Bill");
+        int choice = promptInt("Choice (1-2): ", 1, 2);
+
+        if (choice == 1) {
+            List<Order> orders = orderDAO.getAllOrders();
+            if (orders.isEmpty()) {
+                System.out.println("\nNo orders found in database.");
+                return;
+            }
+            System.out.println("\n--------------------------------------------------------------------------------------------");
+            System.out.printf("%-8s | %-20s | %-19s | %-12s | %-12s | %s\n",
+                    "Order ID", "Customer Name", "Order Date/Time", "Status", "Total (Rs.)", "Payment");
+            System.out.println("---------+----------------------+---------------------+--------------+--------------+-------------");
+            for (Order o : orders) {
+                Payment p = paymentDAO.getPaymentByOrderId(o.getOrderId());
+                String paymentBadge = (p != null) ? "PAID (" + p.getPaymentMethod() + ")" : "PENDING";
+                String timeStr = o.getOrderTime() != null ? o.getOrderTime().toString().substring(0, 19) : "N/A";
+                System.out.printf("#%-7d | %-20s | %-19s | %-12s | Rs.%9.2f | %s\n",
+                        o.getOrderId(), o.getCustomerName(), timeStr, o.getStatus(), o.getTotalAmount(), paymentBadge);
+            }
+            System.out.println("--------------------------------------------------------------------------------------------");
+        } else {
+            int orderId = promptInt("Enter Order ID to view bill: ");
+            printInvoice(orderId);
+        }
+    }
+
+    private static void printInvoice(int orderId) {
+        Order order = orderDAO.getOrderDetails(orderId);
+        if (order == null) {
+            System.out.println(">> Order #" + orderId + " does not exist.");
+            return;
+        }
+
+        Customer cust = customerDAO.getById(order.getCustomerId());
+        Payment payment = paymentDAO.getPaymentByOrderId(orderId);
+
+        System.out.println("\n==========================================================================");
+        System.out.println("                       DINETRACK RESTAURANT BILL                          ");
+        System.out.println("==========================================================================");
+        System.out.printf("Order ID    : #%-15d Status: %s\n", order.getOrderId(), order.getStatus());
+        System.out.printf("Date & Time : %s\n", order.getOrderTime());
+        System.out.printf("Customer    : %s (Phone: %s)\n", order.getCustomerName(), (cust != null ? cust.getPhone() : "N/A"));
+        System.out.println("--------------------------------------------------------------------------");
+        System.out.printf("%-4s | %-26s | %-8s | %-10s | %-12s\n", "#", "Item", "Qty", "Unit Price", "Subtotal");
+        System.out.println("-----+----------------------------+----------+------------+---------------");
+
+        int idx = 1;
+        for (OrderItem item : order.getItems()) {
+            System.out.printf("%-4d | %-26s | %-8d | Rs.%7.2f | Rs.%9.2f\n",
+                    idx++, item.getFoodName(), item.getQuantity(), item.getUnitPrice(), item.getSubtotal());
+        }
+        System.out.println("--------------------------------------------------------------------------");
+        System.out.printf("TOTAL AMOUNT DUE :                                         Rs.%10.2f\n", order.getTotalAmount());
+        System.out.println("--------------------------------------------------------------------------");
+
+        if (payment != null) {
+            System.out.println("PAYMENT STATUS   : PAID (SUCCESS)");
+            System.out.printf("Payment Method   : %s\n", payment.getPaymentMethod());
+            System.out.printf("Reference Code   : %s\n", payment.getReferenceCode());
+            System.out.printf("Paid At          : %s\n", payment.getPaymentTime());
+        } else {
+            System.out.println("PAYMENT STATUS   : UNPAID / PENDING");
+        }
+        System.out.println("==========================================================================\n");
+    }
+
+    private static void updateOrderStatusWorkflow() {
+        System.out.println("\n--- UPDATE ORDER STATUS ---");
+        int orderId = promptInt("Enter Order ID: ");
+        Order order = orderDAO.getOrderDetails(orderId);
+        if (order == null) {
+            System.out.println(">> Order #" + orderId + " not found.");
+            return;
+        }
+
+        System.out.println("Order #" + orderId + " for " + order.getCustomerName() + " | Current Status: " + order.getStatus());
+        System.out.println("Select New Status:");
+        System.out.println("1. PLACED");
+        System.out.println("2. PREPARING");
+        System.out.println("3. READY");
+        System.out.println("4. COMPLETED");
+        System.out.println("5. CANCELLED");
+        int stChoice = promptInt("Choice (1-5): ", 1, 5);
+
+        String newStatus = switch (stChoice) {
+            case 1 -> "PLACED";
+            case 2 -> "PREPARING";
+            case 3 -> "READY";
+            case 4 -> "COMPLETED";
+            case 5 -> "CANCELLED";
+            default -> "PLACED";
+        };
+
+        if (orderDAO.updateStatus(orderId, newStatus)) {
+            System.out.println(">> Success: Status for Order #" + orderId + " changed to " + newStatus);
+        } else {
+            System.out.println(">> Could not update status.");
+        }
+    }
+
+    private static void paymentWorkflow() {
+        System.out.println("\n--- PAYMENT PROCESSING ---");
+        System.out.println("1. Pay for an Order");
+        System.out.println("2. View All Payment Records");
+        int ch = promptInt("Choice (1-2): ", 1, 2);
+
+        if (ch == 1) {
+            int orderId = promptInt("Enter Order ID to process payment: ");
+            processPaymentForOrder(orderId);
+        } else {
+            List<Payment> list = paymentDAO.getAllPayments();
+            if (list.isEmpty()) {
+                System.out.println("\nNo payment records found.");
+                return;
+            }
+            System.out.println("\n---------------------------------------------------------------------------------------------------------");
+            System.out.printf("%-6s | %-8s | %-12s | %-8s | %-32s | %s\n",
+                    "Pay ID", "Order ID", "Amount", "Method", "Reference Code", "Time");
+            System.out.println("-------+----------+--------------+----------+----------------------------------+-------------------------");
+            for (Payment p : list) {
+                System.out.printf("%-6d | #%-7d | Rs.%9.2f | %-8s | %-32s | %s\n",
+                        p.getPaymentId(), p.getOrderId(), p.getAmount(),
+                        p.getPaymentMethod(), p.getReferenceCode(), p.getPaymentTime());
+            }
+            System.out.println("---------------------------------------------------------------------------------------------------------");
+        }
+    }
+
+    private static void processPaymentForOrder(int orderId) {
+        Order order = orderDAO.getOrderDetails(orderId);
+        if (order == null) {
+            System.out.println(">> Order #" + orderId + " not found.");
+            return;
+        }
+
+        if ("CANCELLED".equalsIgnoreCase(order.getStatus())) {
+            System.out.println(">> Cannot process payment: Order #" + orderId + " is CANCELLED.");
+            return;
+        }
+
+        Payment existing = paymentDAO.getPaymentByOrderId(orderId);
+        if (existing != null) {
+            System.out.println(">> Notice: Order #" + orderId + " has already been paid!");
+            System.out.println("   Method: " + existing.getPaymentMethod() + " | Ref: " + existing.getReferenceCode());
+            return;
+        }
+
+        BigDecimal bill = order.getTotalAmount();
+        System.out.println("\n--- Payment for Order #" + orderId + " ---");
+        System.out.println("Customer    : " + order.getCustomerName());
+        System.out.println("Total Amount: Rs. " + bill);
+        System.out.println("\nChoose Payment Method:");
+        System.out.println("1. Cash Payment");
+        System.out.println("2. Debit/Credit Card");
+        System.out.println("3. UPI (Google Pay, PhonePe, Paytm, etc.)");
+
+        int methodChoice = promptInt("Choice (1-3): ", 1, 3);
+        PaymentMethod paymentMethod;
+
+        switch (methodChoice) {
+            case 1 -> {
+                System.out.println("\n[Cash Payment]");
+                BigDecimal tendered = promptPositiveBigDecimal("Enter cash tendered by customer (Rs.): ");
+                while (tendered.compareTo(bill) < 0) {
+                    System.out.println(">> Tendered amount is less than bill amount (Rs. " + bill + ").");
+                    tendered = promptPositiveBigDecimal("Enter sufficient cash (Rs.): ");
+                }
+                CashPayment cash = new CashPayment(bill, tendered);
+                paymentMethod = cash;
+                System.out.printf(">> Change to return to customer: Rs. %.2f\n", cash.getChangeAmount());
+            }
+            case 2 -> {
+                System.out.println("\n[Card Payment]");
+                String cardNum = promptRegexString("Enter Card Number (16 digits or 4 digits): ", "^(\\d{16}|\\d{4})$", "Must be 16 digits or 4 digits.");
+                String cardHolder = promptNonEmptyString("Enter Cardholder Name: ");
+                paymentMethod = new CardPayment(cardNum, cardHolder);
+            }
+            case 3 -> {
+                System.out.println("\n[UPI Payment]");
+                String upiId = promptRegexString("Enter Customer UPI ID (e.g. name@bank): ", "^[a-zA-Z0-9.\\-_]{2,49}@[a-zA-Z]{2,49}$", "Invalid UPI format.");
+                paymentMethod = new UpiPayment(upiId);
+            }
+            default -> throw new IllegalStateException("Invalid choice");
+        }
+
+        paymentMethod.processPayment(bill);
+        int payId = paymentDAO.recordPayment(orderId, bill, paymentMethod);
+
+        if (!"COMPLETED".equalsIgnoreCase(order.getStatus())) {
+            orderDAO.updateStatus(orderId, "COMPLETED");
+        }
+
+        System.out.println("\n==========================================================================");
+        System.out.println(">> PAYMENT SUCCESSFUL!");
+        System.out.println("   Payment ID     : #" + payId);
+        System.out.println("   Method         : " + paymentMethod.getMethodName());
+        System.out.println("   Reference Code : " + paymentMethod.getReferenceCode());
+        System.out.println("   Amount Paid    : Rs. " + bill);
+        System.out.println("   Order Status   : COMPLETED");
+        System.out.println("==========================================================================");
+    }
+
+    private static void reportsMenu() {
+        System.out.println("\n--- REPORTS & STATISTICS ---");
+        System.out.println("1. System Summary Dashboard");
+        System.out.println("2. Top Selling Menu Items");
+        int ch = promptInt("Choice (1-2): ", 1, 2);
+        if (ch == 1) {
+            reportDAO.printDashboard();
+        } else {
+            reportDAO.printTopSellingFoods();
+        }
+    }
+
+    private static int promptInt(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                return Integer.parseInt(scanner.nextLine().trim());
+            } catch (NumberFormatException e) {
+                System.out.println(">> Invalid number. Please enter a valid number.");
+            }
+        }
+    }
+
+    private static int promptInt(String prompt, int min, int max) {
+        while (true) {
+            int val = promptInt(prompt);
+            if (val >= min && val <= max) return val;
+            System.out.printf(">> Please enter a number between %d and %d.\n", min, max);
+        }
+    }
+
+    private static int promptInt(String prompt, int min, int max, int defaultVal) {
+        while (true) {
+            System.out.print(prompt);
+            String line = scanner.nextLine().trim();
+            if (line.isEmpty()) return defaultVal;
+            try {
+                int val = Integer.parseInt(line);
+                if (val >= min && val <= max) return val;
+                System.out.printf(">> Please enter a number between %d and %d.\n", min, max);
+            } catch (NumberFormatException e) {
+                System.out.println(">> Invalid number.");
+            }
+        }
+    }
+
+    private static BigDecimal promptPositiveBigDecimal(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            try {
+                BigDecimal val = new BigDecimal(scanner.nextLine().trim());
+                if (val.compareTo(BigDecimal.ZERO) > 0) {
+                    return val.setScale(2, RoundingMode.HALF_UP);
+                }
+                System.out.println(">> Amount must be greater than zero.");
+            } catch (NumberFormatException e) {
+                System.out.println(">> Invalid decimal amount.");
+            }
+        }
+    }
+
+    private static String promptNonEmptyString(String prompt) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (!input.isEmpty()) return input;
+            System.out.println(">> Field cannot be left empty.");
+        }
+    }
+
+    private static String promptRegexString(String prompt, String regex, String errorMsg) {
+        while (true) {
+            System.out.print(prompt);
+            String input = scanner.nextLine().trim();
+            if (input.matches(regex)) return input;
+            System.out.println(">> " + errorMsg);
+        }
+    }
+}
+
 class InvalidOrderException extends Exception {
     public InvalidOrderException(String message) {
         super(message);
@@ -912,667 +1573,6 @@ class ReportDAO {
             System.out.println("==========================================================================");
         } catch (SQLException e) {
             throw new DataAccessException("Error loading top selling foods: " + e.getMessage(), e);
-        }
-    }
-}
-
-public class DineTrack {
-    private static final Scanner scanner = new Scanner(System.in);
-    private static final CustomerDAO customerDAO = new CustomerDAO();
-    private static final FoodDAO foodDAO = new FoodDAO();
-    private static final OrderDAO orderDAO = new OrderDAO();
-    private static final PaymentDAO paymentDAO = new PaymentDAO();
-    private static final ReportDAO reportDAO = new ReportDAO();
-
-    public static void main(String[] args) {
-        printBanner();
-        ensureDatabaseConnection();
-
-        boolean running = true;
-        while (running) {
-            try {
-                printMainMenu();
-                int choice = promptInt("Enter your choice (1-8): ", 1, 8);
-                switch (choice) {
-                    case 1 -> customerMenu();
-                    case 2 -> foodMenu();
-                    case 3 -> createOrderWorkflow();
-                    case 4 -> viewOrdersWorkflow();
-                    case 5 -> updateOrderStatusWorkflow();
-                    case 6 -> paymentWorkflow();
-                    case 7 -> reportsMenu();
-                    case 8 -> {
-                        running = false;
-                        System.out.println("\nThank you for using DineTrack. Goodbye!");
-                    }
-                }
-            } catch (InvalidOrderException e) {
-                System.out.println("\n[Order Error] " + e.getMessage());
-            } catch (DataAccessException e) {
-                System.out.println("\n[Database Notice] " + e.getMessage());
-            } catch (Exception e) {
-                System.out.println("\n[Error] " + e.getMessage());
-            }
-        }
-    }
-
-    private static void ensureDatabaseConnection() {
-        if (Database.testConnection()) {
-            System.out.println("[Connected] MySQL database connected: " + Database.getDatabaseName());
-            return;
-        }
-
-        System.out.println("\nCould not connect to MySQL with user '" + Database.getUser() + "'.");
-        System.out.println("Please enter your MySQL connection settings:");
-
-        while (true) {
-            System.out.print("MySQL Host [localhost]: ");
-            String host = scanner.nextLine().trim();
-            if (host.isEmpty()) host = "localhost";
-
-            int port = promptInt("MySQL Port [3306]: ", 1, 65535, 3306);
-
-            System.out.print("Database Name [dinetrack]: ");
-            String db = scanner.nextLine().trim();
-            if (db.isEmpty()) db = "dinetrack";
-
-            System.out.print("MySQL Username [root]: ");
-            String user = scanner.nextLine().trim();
-            if (user.isEmpty()) user = "root";
-
-            System.out.print("MySQL Password: ");
-            String pwd = scanner.nextLine();
-
-            Database.setCredentials(host, port, db, user, pwd);
-            if (Database.testConnection()) {
-                System.out.println("[Connected] Database connected successfully!\n");
-                break;
-            } else {
-                System.out.println("[Failed] Could not connect. Please check MySQL service.\n");
-                System.out.print("Retry connection? (y/n): ");
-                if (!scanner.nextLine().trim().equalsIgnoreCase("y")) {
-                    System.out.println("Exiting application.");
-                    System.exit(1);
-                }
-            }
-        }
-    }
-
-    private static void printBanner() {
-        System.out.println("==========================================================================");
-        System.out.println("                  DINETRACK RESTAURANT MANAGEMENT SYSTEM                  ");
-        System.out.println("==========================================================================");
-    }
-
-    private static void printMainMenu() {
-        System.out.println("\n============================= MAIN MENU ==================================");
-        System.out.println("  1. Customer Management       (Add, View, Update, Delete, Search)");
-        System.out.println("  2. Food Menu Management      (Add, View, Update, Stock Status)");
-        System.out.println("  3. Create New Order          (Select items and place order)");
-        System.out.println("  4. View Orders & Invoices    (Order history and detailed bill)");
-        System.out.println("  5. Update Order Status       (Placed, Preparing, Ready, Completed)");
-        System.out.println("  6. Payment Processing        (Cash, Card, UPI payment)");
-        System.out.println("  7. Reports & Statistics      (Dashboard & Top selling foods)");
-        System.out.println("  8. Exit");
-        System.out.println("==========================================================================");
-    }
-
-    private static void customerMenu() {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n--- CUSTOMER MANAGEMENT ---");
-            System.out.println("1. Add New Customer");
-            System.out.println("2. View All Customers");
-            System.out.println("3. Search Customer (by Name / Phone / Email)");
-            System.out.println("4. Update Customer Information");
-            System.out.println("5. Delete Customer");
-            System.out.println("6. Back to Main Menu");
-            int choice = promptInt("Choice (1-6): ", 1, 6);
-
-            switch (choice) {
-                case 1 -> {
-                    System.out.println("\n[Register New Customer]");
-                    String name = promptNonEmptyString("Enter Customer Name: ");
-                    String phone = promptRegexString("Enter Phone (7-15 digits): ", "^[0-9+() -]{7,15}$", "Invalid phone format.");
-                    String email = promptRegexString("Enter Email: ", "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", "Invalid email format.");
-                    Customer c = new Customer(0, name, phone, email);
-                    int id = customerDAO.add(c);
-                    System.out.println(">> Success: Customer registered with ID #" + id);
-                }
-                case 2 -> displayCustomerList(customerDAO.getAll());
-                case 3 -> {
-                    System.out.print("Enter search term (Name/Phone/Email): ");
-                    String query = scanner.nextLine().trim();
-                    displayCustomerList(customerDAO.search(query));
-                }
-                case 4 -> {
-                    int id = promptInt("Enter Customer ID to update: ");
-                    Customer existing = customerDAO.getById(id);
-                    if (existing == null) {
-                        System.out.println(">> Customer not found with ID #" + id);
-                        break;
-                    }
-                    System.out.println("Current Details: " + existing);
-                    System.out.print("Enter New Name (leave blank to keep '" + existing.getName() + "'): ");
-                    String n = scanner.nextLine().trim();
-                    if (!n.isEmpty()) existing.setName(n);
-
-                    System.out.print("Enter New Phone (leave blank to keep '" + existing.getPhone() + "'): ");
-                    String p = scanner.nextLine().trim();
-                    if (!p.isEmpty()) existing.setPhone(p);
-
-                    System.out.print("Enter New Email (leave blank to keep '" + existing.getEmail() + "'): ");
-                    String e = scanner.nextLine().trim();
-                    if (!e.isEmpty()) existing.setEmail(e);
-
-                    if (customerDAO.update(existing)) {
-                        System.out.println(">> Success: Customer details updated!");
-                    } else {
-                        System.out.println(">> Could not update customer.");
-                    }
-                }
-                case 5 -> {
-                    int id = promptInt("Enter Customer ID to delete: ");
-                    System.out.print("Are you sure you want to delete customer #" + id + "? (yes/no): ");
-                    if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
-                        if (customerDAO.delete(id)) {
-                            System.out.println(">> Success: Customer deleted.");
-                        } else {
-                            System.out.println(">> Customer not found.");
-                        }
-                    } else {
-                        System.out.println(">> Deletion cancelled.");
-                    }
-                }
-                case 6 -> back = true;
-            }
-        }
-    }
-
-    private static void displayCustomerList(List<Customer> list) {
-        if (list.isEmpty()) {
-            System.out.println("\nNo customer records found.");
-            return;
-        }
-        System.out.println("\n----------------------------------------------------------------------------------");
-        System.out.printf("%-5s | %-22s | %-16s | %-26s | %s\n", "ID", "Name", "Phone", "Email", "Role");
-        System.out.println("------+------------------------+------------------+----------------------------+-----------");
-        for (Customer c : list) {
-            System.out.printf("%-5d | %-22s | %-16s | %-26s | %s\n",
-                    c.getId(), c.getName(), c.getPhone(), c.getEmail(), c.getRole());
-        }
-        System.out.println("----------------------------------------------------------------------------------");
-    }
-
-    private static void foodMenu() {
-        boolean back = false;
-        while (!back) {
-            System.out.println("\n--- FOOD MENU MANAGEMENT ---");
-            System.out.println("1. View Full Menu (All Items)");
-            System.out.println("2. View Available Items Only");
-            System.out.println("3. Add New Food Item");
-            System.out.println("4. Update Food Item Details");
-            System.out.println("5. Toggle Stock Availability");
-            System.out.println("6. Delete Food Item");
-            System.out.println("7. Back to Main Menu");
-            int choice = promptInt("Choice (1-7): ", 1, 7);
-
-            switch (choice) {
-                case 1 -> displayFoodList(foodDAO.getAll(false));
-                case 2 -> displayFoodList(foodDAO.getAll(true));
-                case 3 -> {
-                    System.out.println("\n[Add New Food Item]");
-                    String name = promptNonEmptyString("Item Name: ");
-                    String category = promptNonEmptyString("Category: ");
-                    BigDecimal price = promptPositiveBigDecimal("Price (Rs.): ");
-                    System.out.print("Is it currently available? (yes/no) [yes]: ");
-                    String availStr = scanner.nextLine().trim();
-                    boolean avail = availStr.isEmpty() || availStr.equalsIgnoreCase("yes") || availStr.equalsIgnoreCase("y");
-
-                    Food f = new Food(0, name, category, price, avail);
-                    int id = foodDAO.add(f);
-                    System.out.println(">> Success: Food item added to menu with ID #" + id);
-                }
-                case 4 -> {
-                    int id = promptInt("Enter Food ID to update: ");
-                    Food f = foodDAO.getById(id);
-                    if (f == null) {
-                        System.out.println(">> Food item not found with ID #" + id);
-                        break;
-                    }
-                    System.out.println("Current: " + f);
-                    System.out.print("Enter New Name (leave blank to keep '" + f.getName() + "'): ");
-                    String n = scanner.nextLine().trim();
-                    if (!n.isEmpty()) f.setName(n);
-
-                    System.out.print("Enter New Category (leave blank to keep '" + f.getCategory() + "'): ");
-                    String c = scanner.nextLine().trim();
-                    if (!c.isEmpty()) f.setCategory(c);
-
-                    System.out.print("Enter New Price (leave blank to keep Rs. " + f.getPrice() + "): ");
-                    String pStr = scanner.nextLine().trim();
-                    if (!pStr.isEmpty()) {
-                        f.setPrice(new BigDecimal(pStr));
-                    }
-
-                    System.out.print("Available? (yes/no, leave blank to keep " + (f.isAvailable() ? "yes" : "no") + "): ");
-                    String aStr = scanner.nextLine().trim();
-                    if (!aStr.isEmpty()) {
-                        f.setAvailable(aStr.equalsIgnoreCase("yes") || aStr.equalsIgnoreCase("y"));
-                    }
-
-                    if (foodDAO.update(f)) {
-                        System.out.println(">> Success: Menu item updated!");
-                    } else {
-                        System.out.println(">> Failed to update menu item.");
-                    }
-                }
-                case 5 -> {
-                    int id = promptInt("Enter Food ID to toggle availability: ");
-                    Food f = foodDAO.getById(id);
-                    if (f == null) {
-                        System.out.println(">> Food item not found with ID #" + id);
-                        break;
-                    }
-                    if (foodDAO.toggleAvailability(id)) {
-                        System.out.println(">> Success: Availability changed to: " + (!f.isAvailable() ? "AVAILABLE" : "OUT OF STOCK"));
-                    }
-                }
-                case 6 -> {
-                    int id = promptInt("Enter Food ID to delete: ");
-                    System.out.print("Are you sure you want to delete food #" + id + "? (yes/no): ");
-                    if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
-                        if (foodDAO.delete(id)) {
-                            System.out.println(">> Success: Food item removed from menu.");
-                        } else {
-                            System.out.println(">> Food item not found.");
-                        }
-                    }
-                }
-                case 7 -> back = true;
-            }
-        }
-    }
-
-    private static void displayFoodList(List<Food> list) {
-        if (list.isEmpty()) {
-            System.out.println("\nNo menu items found.");
-            return;
-        }
-        System.out.println("\n--------------------------------------------------------------------------------");
-        System.out.printf("%-5s | %-24s | %-16s | %-12s | %s\n", "ID", "Item Name", "Category", "Price", "Status");
-        System.out.println("------+--------------------------+------------------+--------------+------------");
-        for (Food f : list) {
-            System.out.printf("%-5d | %-24s | %-16s | Rs.%9.2f | %s\n",
-                    f.getId(), f.getName(), f.getCategory(), f.getPrice(),
-                    f.isAvailable() ? "In Stock" : "[Out of Stock]");
-        }
-        System.out.println("--------------------------------------------------------------------------------");
-    }
-
-    private static void createOrderWorkflow() throws InvalidOrderException {
-        System.out.println("\n========================== CREATE NEW ORDER ==============================");
-        int customerId = promptInt("Enter Customer ID: ");
-        Customer customer = customerDAO.getById(customerId);
-        if (customer == null) {
-            System.out.println(">> Customer #" + customerId + " not found!");
-            System.out.print("Would you like to quickly register this customer? (yes/no): ");
-            if (scanner.nextLine().trim().equalsIgnoreCase("yes")) {
-                String name = promptNonEmptyString("Customer Name: ");
-                String phone = promptRegexString("Phone: ", "^[0-9+() -]{7,15}$", "Invalid phone format.");
-                String email = promptRegexString("Email: ", "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", "Invalid email format.");
-                customerId = customerDAO.add(new Customer(0, name, phone, email));
-                customer = customerDAO.getById(customerId);
-                System.out.println(">> Registered! Proceeding with Customer #" + customerId + " (" + customer.getName() + ")");
-            } else {
-                return;
-            }
-        } else {
-            System.out.println("Customer Selected: " + customer.getName() + " (" + customer.getPhone() + ")");
-        }
-
-        System.out.println("\nAvailable Menu Items:");
-        displayFoodList(foodDAO.getAll(true));
-
-        Map<Integer, Integer> cart = new LinkedHashMap<>();
-        BigDecimal estimatedTotal = BigDecimal.ZERO;
-
-        while (true) {
-            System.out.print("\nEnter Food ID to add (or 0 to finish selection): ");
-            int foodId = promptInt("");
-            if (foodId == 0) break;
-
-            Food food = foodDAO.getById(foodId);
-            if (food == null) {
-                System.out.println(">> Invalid Food ID. Please choose from the menu.");
-                continue;
-            }
-            if (!food.isAvailable()) {
-                System.out.println(">> Sorry, '" + food.getName() + "' is currently out of stock.");
-                continue;
-            }
-
-            int qty = promptInt("Enter quantity for " + food.getName() + " (Rs. " + food.getPrice() + "): ", 1, 99);
-            cart.put(foodId, cart.getOrDefault(foodId, 0) + qty);
-
-            estimatedTotal = BigDecimal.ZERO;
-            System.out.println("\n--- Current Cart ---");
-            for (Map.Entry<Integer, Integer> e : cart.entrySet()) {
-                Food item = foodDAO.getById(e.getKey());
-                BigDecimal lineTotal = item.getPrice().multiply(BigDecimal.valueOf(e.getValue()));
-                estimatedTotal = estimatedTotal.add(lineTotal);
-                System.out.printf("  * %-20s x %2d = Rs.%7.2f\n", item.getName(), e.getValue(), lineTotal);
-            }
-            System.out.printf("Estimated Total: Rs. %.2f\n", estimatedTotal);
-        }
-
-        if (cart.isEmpty()) {
-            System.out.println(">> Order cancelled: No items selected.");
-            return;
-        }
-
-        System.out.print("\nConfirm order placement for Rs. " + estimatedTotal + "? (yes/no) [yes]: ");
-        String confirm = scanner.nextLine().trim();
-        if (!confirm.isEmpty() && !confirm.equalsIgnoreCase("yes") && !confirm.equalsIgnoreCase("y")) {
-            System.out.println(">> Order discarded.");
-            return;
-        }
-
-        int orderId = orderDAO.createOrder(customerId, cart);
-        System.out.println("\n==========================================================================");
-        System.out.println(">> ORDER PLACED SUCCESSFULLY! Order ID: #" + orderId);
-        System.out.println(">> Status: PLACED | Total Amount: Rs. " + estimatedTotal);
-        System.out.println("==========================================================================");
-
-        System.out.print("\nWould you like to process payment for Order #" + orderId + " now? (yes/no) [yes]: ");
-        String payNow = scanner.nextLine().trim();
-        if (payNow.isEmpty() || payNow.equalsIgnoreCase("yes") || payNow.equalsIgnoreCase("y")) {
-            processPaymentForOrder(orderId);
-        }
-    }
-
-    private static void viewOrdersWorkflow() {
-        System.out.println("\n--- VIEW ORDERS & BILLS ---");
-        System.out.println("1. List All Recent Orders");
-        System.out.println("2. View Detailed Order Invoice / Bill");
-        int choice = promptInt("Choice (1-2): ", 1, 2);
-
-        if (choice == 1) {
-            List<Order> orders = orderDAO.getAllOrders();
-            if (orders.isEmpty()) {
-                System.out.println("\nNo orders found in database.");
-                return;
-            }
-            System.out.println("\n--------------------------------------------------------------------------------------------");
-            System.out.printf("%-8s | %-20s | %-19s | %-12s | %-12s | %s\n",
-                    "Order ID", "Customer Name", "Order Date/Time", "Status", "Total (Rs.)", "Payment");
-            System.out.println("---------+----------------------+---------------------+--------------+--------------+-------------");
-            for (Order o : orders) {
-                Payment p = paymentDAO.getPaymentByOrderId(o.getOrderId());
-                String paymentBadge = (p != null) ? "PAID (" + p.getPaymentMethod() + ")" : "PENDING";
-                String timeStr = o.getOrderTime() != null ? o.getOrderTime().toString().substring(0, 19) : "N/A";
-                System.out.printf("#%-7d | %-20s | %-19s | %-12s | Rs.%9.2f | %s\n",
-                        o.getOrderId(), o.getCustomerName(), timeStr, o.getStatus(), o.getTotalAmount(), paymentBadge);
-            }
-            System.out.println("--------------------------------------------------------------------------------------------");
-        } else {
-            int orderId = promptInt("Enter Order ID to view bill: ");
-            printInvoice(orderId);
-        }
-    }
-
-    private static void printInvoice(int orderId) {
-        Order order = orderDAO.getOrderDetails(orderId);
-        if (order == null) {
-            System.out.println(">> Order #" + orderId + " does not exist.");
-            return;
-        }
-
-        Customer cust = customerDAO.getById(order.getCustomerId());
-        Payment payment = paymentDAO.getPaymentByOrderId(orderId);
-
-        System.out.println("\n==========================================================================");
-        System.out.println("                       DINETRACK RESTAURANT BILL                          ");
-        System.out.println("==========================================================================");
-        System.out.printf("Order ID    : #%-15d Status: %s\n", order.getOrderId(), order.getStatus());
-        System.out.printf("Date & Time : %s\n", order.getOrderTime());
-        System.out.printf("Customer    : %s (Phone: %s)\n", order.getCustomerName(), (cust != null ? cust.getPhone() : "N/A"));
-        System.out.println("--------------------------------------------------------------------------");
-        System.out.printf("%-4s | %-26s | %-8s | %-10s | %-12s\n", "#", "Item", "Qty", "Unit Price", "Subtotal");
-        System.out.println("-----+----------------------------+----------+------------+---------------");
-
-        int idx = 1;
-        for (OrderItem item : order.getItems()) {
-            System.out.printf("%-4d | %-26s | %-8d | Rs.%7.2f | Rs.%9.2f\n",
-                    idx++, item.getFoodName(), item.getQuantity(), item.getUnitPrice(), item.getSubtotal());
-        }
-        System.out.println("--------------------------------------------------------------------------");
-        System.out.printf("TOTAL AMOUNT DUE :                                         Rs.%10.2f\n", order.getTotalAmount());
-        System.out.println("--------------------------------------------------------------------------");
-
-        if (payment != null) {
-            System.out.println("PAYMENT STATUS   : PAID (SUCCESS)");
-            System.out.printf("Payment Method   : %s\n", payment.getPaymentMethod());
-            System.out.printf("Reference Code   : %s\n", payment.getReferenceCode());
-            System.out.printf("Paid At          : %s\n", payment.getPaymentTime());
-        } else {
-            System.out.println("PAYMENT STATUS   : UNPAID / PENDING");
-        }
-        System.out.println("==========================================================================\n");
-    }
-
-    private static void updateOrderStatusWorkflow() {
-        System.out.println("\n--- UPDATE ORDER STATUS ---");
-        int orderId = promptInt("Enter Order ID: ");
-        Order order = orderDAO.getOrderDetails(orderId);
-        if (order == null) {
-            System.out.println(">> Order #" + orderId + " not found.");
-            return;
-        }
-
-        System.out.println("Order #" + orderId + " for " + order.getCustomerName() + " | Current Status: " + order.getStatus());
-        System.out.println("Select New Status:");
-        System.out.println("1. PLACED");
-        System.out.println("2. PREPARING");
-        System.out.println("3. READY");
-        System.out.println("4. COMPLETED");
-        System.out.println("5. CANCELLED");
-        int stChoice = promptInt("Choice (1-5): ", 1, 5);
-
-        String newStatus = switch (stChoice) {
-            case 1 -> "PLACED";
-            case 2 -> "PREPARING";
-            case 3 -> "READY";
-            case 4 -> "COMPLETED";
-            case 5 -> "CANCELLED";
-            default -> "PLACED";
-        };
-
-        if (orderDAO.updateStatus(orderId, newStatus)) {
-            System.out.println(">> Success: Status for Order #" + orderId + " changed to " + newStatus);
-        } else {
-            System.out.println(">> Could not update status.");
-        }
-    }
-
-    private static void paymentWorkflow() {
-        System.out.println("\n--- PAYMENT PROCESSING ---");
-        System.out.println("1. Pay for an Order");
-        System.out.println("2. View All Payment Records");
-        int ch = promptInt("Choice (1-2): ", 1, 2);
-
-        if (ch == 1) {
-            int orderId = promptInt("Enter Order ID to process payment: ");
-            processPaymentForOrder(orderId);
-        } else {
-            List<Payment> list = paymentDAO.getAllPayments();
-            if (list.isEmpty()) {
-                System.out.println("\nNo payment records found.");
-                return;
-            }
-            System.out.println("\n---------------------------------------------------------------------------------------------------------");
-            System.out.printf("%-6s | %-8s | %-12s | %-8s | %-32s | %s\n",
-                    "Pay ID", "Order ID", "Amount", "Method", "Reference Code", "Time");
-            System.out.println("-------+----------+--------------+----------+----------------------------------+-------------------------");
-            for (Payment p : list) {
-                System.out.printf("%-6d | #%-7d | Rs.%9.2f | %-8s | %-32s | %s\n",
-                        p.getPaymentId(), p.getOrderId(), p.getAmount(),
-                        p.getPaymentMethod(), p.getReferenceCode(), p.getPaymentTime());
-            }
-            System.out.println("---------------------------------------------------------------------------------------------------------");
-        }
-    }
-
-    private static void processPaymentForOrder(int orderId) {
-        Order order = orderDAO.getOrderDetails(orderId);
-        if (order == null) {
-            System.out.println(">> Order #" + orderId + " not found.");
-            return;
-        }
-
-        if ("CANCELLED".equalsIgnoreCase(order.getStatus())) {
-            System.out.println(">> Cannot process payment: Order #" + orderId + " is CANCELLED.");
-            return;
-        }
-
-        Payment existing = paymentDAO.getPaymentByOrderId(orderId);
-        if (existing != null) {
-            System.out.println(">> Notice: Order #" + orderId + " has already been paid!");
-            System.out.println("   Method: " + existing.getPaymentMethod() + " | Ref: " + existing.getReferenceCode());
-            return;
-        }
-
-        BigDecimal bill = order.getTotalAmount();
-        System.out.println("\n--- Payment for Order #" + orderId + " ---");
-        System.out.println("Customer    : " + order.getCustomerName());
-        System.out.println("Total Amount: Rs. " + bill);
-        System.out.println("\nChoose Payment Method:");
-        System.out.println("1. Cash Payment");
-        System.out.println("2. Debit/Credit Card");
-        System.out.println("3. UPI (Google Pay, PhonePe, Paytm, etc.)");
-
-        int methodChoice = promptInt("Choice (1-3): ", 1, 3);
-        PaymentMethod paymentMethod;
-
-        switch (methodChoice) {
-            case 1 -> {
-                System.out.println("\n[Cash Payment]");
-                BigDecimal tendered = promptPositiveBigDecimal("Enter cash tendered by customer (Rs.): ");
-                while (tendered.compareTo(bill) < 0) {
-                    System.out.println(">> Tendered amount is less than bill amount (Rs. " + bill + ").");
-                    tendered = promptPositiveBigDecimal("Enter sufficient cash (Rs.): ");
-                }
-                CashPayment cash = new CashPayment(bill, tendered);
-                paymentMethod = cash;
-                System.out.printf(">> Change to return to customer: Rs. %.2f\n", cash.getChangeAmount());
-            }
-            case 2 -> {
-                System.out.println("\n[Card Payment]");
-                String cardNum = promptRegexString("Enter Card Number (16 digits or 4 digits): ", "^(\\d{16}|\\d{4})$", "Must be 16 digits or 4 digits.");
-                String cardHolder = promptNonEmptyString("Enter Cardholder Name: ");
-                paymentMethod = new CardPayment(cardNum, cardHolder);
-            }
-            case 3 -> {
-                System.out.println("\n[UPI Payment]");
-                String upiId = promptRegexString("Enter Customer UPI ID (e.g. name@bank): ", "^[a-zA-Z0-9.\\-_]{2,49}@[a-zA-Z]{2,49}$", "Invalid UPI format.");
-                paymentMethod = new UpiPayment(upiId);
-            }
-            default -> throw new IllegalStateException("Invalid choice");
-        }
-
-        paymentMethod.processPayment(bill);
-        int payId = paymentDAO.recordPayment(orderId, bill, paymentMethod);
-
-        if (!"COMPLETED".equalsIgnoreCase(order.getStatus())) {
-            orderDAO.updateStatus(orderId, "COMPLETED");
-        }
-
-        System.out.println("\n==========================================================================");
-        System.out.println(">> PAYMENT SUCCESSFUL!");
-        System.out.println("   Payment ID     : #" + payId);
-        System.out.println("   Method         : " + paymentMethod.getMethodName());
-        System.out.println("   Reference Code : " + paymentMethod.getReferenceCode());
-        System.out.println("   Amount Paid    : Rs. " + bill);
-        System.out.println("   Order Status   : COMPLETED");
-        System.out.println("==========================================================================");
-    }
-
-    private static void reportsMenu() {
-        System.out.println("\n--- REPORTS & STATISTICS ---");
-        System.out.println("1. System Summary Dashboard");
-        System.out.println("2. Top Selling Menu Items");
-        int ch = promptInt("Choice (1-2): ", 1, 2);
-        if (ch == 1) {
-            reportDAO.printDashboard();
-        } else {
-            reportDAO.printTopSellingFoods();
-        }
-    }
-
-    private static int promptInt(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            try {
-                return Integer.parseInt(scanner.nextLine().trim());
-            } catch (NumberFormatException e) {
-                System.out.println(">> Invalid number. Please enter a valid number.");
-            }
-        }
-    }
-
-    private static int promptInt(String prompt, int min, int max) {
-        while (true) {
-            int val = promptInt(prompt);
-            if (val >= min && val <= max) return val;
-            System.out.printf(">> Please enter a number between %d and %d.\n", min, max);
-        }
-    }
-
-    private static int promptInt(String prompt, int min, int max, int defaultVal) {
-        while (true) {
-            System.out.print(prompt);
-            String line = scanner.nextLine().trim();
-            if (line.isEmpty()) return defaultVal;
-            try {
-                int val = Integer.parseInt(line);
-                if (val >= min && val <= max) return val;
-                System.out.printf(">> Please enter a number between %d and %d.\n", min, max);
-            } catch (NumberFormatException e) {
-                System.out.println(">> Invalid number.");
-            }
-        }
-    }
-
-    private static BigDecimal promptPositiveBigDecimal(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            try {
-                BigDecimal val = new BigDecimal(scanner.nextLine().trim());
-                if (val.compareTo(BigDecimal.ZERO) > 0) {
-                    return val.setScale(2, RoundingMode.HALF_UP);
-                }
-                System.out.println(">> Amount must be greater than zero.");
-            } catch (NumberFormatException e) {
-                System.out.println(">> Invalid decimal amount.");
-            }
-        }
-    }
-
-    private static String promptNonEmptyString(String prompt) {
-        while (true) {
-            System.out.print(prompt);
-            String input = scanner.nextLine().trim();
-            if (!input.isEmpty()) return input;
-            System.out.println(">> Field cannot be left empty.");
-        }
-    }
-
-    private static String promptRegexString(String prompt, String regex, String errorMsg) {
-        while (true) {
-            System.out.print(prompt);
-            String input = scanner.nextLine().trim();
-            if (input.matches(regex)) return input;
-            System.out.println(">> " + errorMsg);
         }
     }
 }
