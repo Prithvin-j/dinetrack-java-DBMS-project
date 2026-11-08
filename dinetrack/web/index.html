@@ -1,0 +1,2580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DineTrack - Restaurant Management System</title>
+    <!-- Basic reset and simple styles - made by me for my mini project -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        body {
+            background-color: #f0f4f8;
+            color: #222;
+            min-height: 100vh;
+        }
+
+        /* ===== HEADER ===== */
+        header {
+            background-color: #1a73e8;
+            color: white;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .brand-icon {
+            font-size: 28px;
+        }
+
+        .brand h1 {
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .brand p {
+            font-size: 12px;
+            opacity: 0.85;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .db-status {
+            background: #34a853;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+        }
+
+        .btn-refresh {
+            background: white;
+            color: #1a73e8;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 5px;
+            font-size: 13px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-refresh:hover {
+            background: #e8f0fe;
+        }
+
+        /* ===== NAVIGATION TABS ===== */
+        nav {
+            background: #fff;
+            border-bottom: 2px solid #ddd;
+            padding: 0 16px;
+            display: flex;
+            overflow-x: auto;
+            gap: 4px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 12px 16px;
+            font-size: 14px;
+            cursor: pointer;
+            color: #555;
+            white-space: nowrap;
+            font-weight: 600;
+        }
+
+        .nav-btn:hover {
+            color: #1a73e8;
+            background: #f8f9fa;
+        }
+
+        .nav-btn.active {
+            color: #1a73e8;
+            border-bottom-color: #1a73e8;
+        }
+
+        /* ===== MAIN CONTENT ===== */
+        main {
+            padding: 20px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* ===== CARDS ===== */
+        .card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 14px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 14px;
+        }
+
+        /* ===== KPI STATS GRID ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .stat-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+        }
+
+        .stat-icon {
+            font-size: 32px;
+            width: 52px;
+            height: 52px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 10px;
+            background: #e8f0fe;
+        }
+
+        .stat-info h4 {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+        }
+
+        .stat-info .stat-val {
+            font-size: 22px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        .stat-info .stat-sub {
+            font-size: 12px;
+            color: #888;
+            margin-top: 2px;
+        }
+
+        /* ===== BUTTONS ===== */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            background: #1a73e8;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.88;
+        }
+
+        .btn-green {
+            background: #34a853;
+        }
+
+        .btn-orange {
+            background: #f9ab00;
+            color: #333;
+        }
+
+        .btn-red {
+            background: #ea4335;
+        }
+
+        .btn-gray {
+            background: #e8eaed;
+            color: #333;
+        }
+
+        .btn-gray:hover {
+            background: #d2d4d7;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        /* ===== TABLES ===== */
+        .table-wrap {
+            overflow-x: auto;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8f9fa;
+            color: #555;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 10px 12px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            vertical-align: middle;
+            color: #333;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background: #f8f9fb;
+        }
+
+        /* ===== BADGES ===== */
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-placed    { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
+        .badge-preparing { background: #cce5ff; color: #004085; border: 1px solid #90caf9; }
+        .badge-ready     { background: #d4edda; color: #155724; border: 1px solid #4caf50; }
+        .badge-completed { background: #d1e7dd; color: #0a3622; border: 1px solid #198754; }
+        .badge-cancelled { background: #f8d7da; color: #842029; border: 1px solid #dc3545; }
+        .badge-paid      { background: #d1e7dd; color: #0a3622; border: 1px solid #198754; }
+        .badge-unpaid    { background: #f8d7da; color: #842029; border: 1px solid #dc3545; }
+        .badge-refunded  { background: #e2e3e5; color: #383d41; border: 1px solid #adb5bd; }
+
+        /* ===== FORMS & INPUTS ===== */
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: bold;
+            color: #555;
+            margin-bottom: 4px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        input[type="tel"],
+        input[type="email"],
+        select,
+        textarea {
+            width: 100%;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+            color: #333;
+            outline: none;
+        }
+
+        input:focus, select:focus {
+            border-color: #1a73e8;
+            box-shadow: 0 0 0 2px rgba(26,115,232,0.2);
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 6px 10px;
+            background: white;
+            gap: 6px;
+            min-width: 220px;
+        }
+
+        .search-box input {
+            border: none;
+            outline: none;
+            font-size: 14px;
+            width: 100%;
+            padding: 0;
+        }
+
+        /* ===== MODAL ===== */
+        .modal-bg {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-bg.open {
+            display: flex;
+        }
+
+        .modal-box {
+            background: white;
+            border-radius: 10px;
+            width: 100%;
+            max-width: 540px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.25);
+        }
+
+        .modal-head {
+            padding: 14px 18px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .modal-body {
+            padding: 18px;
+        }
+
+        .modal-foot {
+            padding: 12px 18px;
+            border-top: 1px solid #eee;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        /* ===== POS LAYOUT ===== */
+        .pos-layout {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 16px;
+            align-items: start;
+        }
+
+        @media (max-width: 900px) {
+            .pos-layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .category-tabs {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 8px;
+            margin-bottom: 12px;
+        }
+
+        .cat-btn {
+            background: #e8eaed;
+            border: none;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            white-space: nowrap;
+            color: #333;
+        }
+
+        .cat-btn.active, .cat-btn:hover {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .food-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 12px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .food-card {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            cursor: pointer;
+            transition: border-color 0.15s;
+        }
+
+        .food-card:hover {
+            border-color: #1a73e8;
+        }
+
+        .food-card-name {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .food-card-cat {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+        }
+
+        .food-card-price {
+            font-size: 16px;
+            font-weight: bold;
+            color: #1a73e8;
+        }
+
+        .food-card-stock {
+            font-size: 12px;
+            color: #888;
+        }
+
+        /* ===== CART ===== */
+        .cart-box {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 16px;
+            position: sticky;
+            top: 10px;
+        }
+
+        .cart-box h3 {
+            font-size: 15px;
+            font-weight: bold;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .cart-items-list {
+            max-height: 220px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+        }
+
+        .cart-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 7px 0;
+            border-bottom: 1px dashed #eee;
+            font-size: 13px;
+        }
+
+        .cart-row:last-child {
+            border-bottom: none;
+        }
+
+        .qty-ctrl {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .qty-btn {
+            background: #e8eaed;
+            border: none;
+            border-radius: 4px;
+            width: 22px;
+            height: 22px;
+            font-size: 14px;
+            cursor: pointer;
+            font-weight: bold;
+            line-height: 1;
+        }
+
+        .qty-btn:hover {
+            background: #1a73e8;
+            color: white;
+        }
+
+        .cart-summary {
+            border-top: 1px solid #eee;
+            padding-top: 10px;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .summary-total {
+            display: flex;
+            justify-content: space-between;
+            font-size: 18px;
+            font-weight: bold;
+            color: #1a73e8;
+            border-top: 2px solid #1a73e8;
+            margin-top: 8px;
+            padding-top: 8px;
+        }
+
+        /* ===== INVOICE PRINT ===== */
+        .invoice-paper {
+            background: white;
+            color: #222;
+            padding: 24px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #ddd;
+        }
+
+        .invoice-paper table {
+            color: #222;
+        }
+
+        .invoice-paper th {
+            background: #f5f5f5;
+            color: #444;
+        }
+
+        .invoice-paper td {
+            color: #222;
+            border-bottom: 1px solid #eee;
+        }
+
+        /* ===== TOAST NOTIFICATIONS ===== */
+        #toast-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: #333;
+            color: white;
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-size: 13px;
+            border-left: 4px solid #1a73e8;
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            min-width: 250px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            animation: slidein 0.25s ease;
+        }
+
+        .toast.success { border-color: #34a853; }
+        .toast.error   { border-color: #ea4335; }
+        .toast.warning { border-color: #f9ab00; }
+
+        @keyframes slidein {
+            from { transform: translateX(120%); }
+            to   { transform: translateX(0); }
+        }
+
+        /* ===== PRINT ===== */
+        @media print {
+            body * { visibility: hidden; }
+            #invoice-print-area, #invoice-print-area * { visibility: visible; }
+            #invoice-print-area {
+                position: absolute;
+                left: 0; top: 0;
+                width: 100%;
+                background: white;
+                color: black;
+                padding: 10px;
+            }
+        }
+
+        /* ===== HELPER UTILITIES ===== */
+        .row-flex {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .two-col {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .text-blue  { color: #1a73e8; font-weight: bold; }
+        .text-green { color: #34a853; font-weight: bold; }
+        .text-red   { color: #ea4335; font-weight: bold; }
+        .text-muted { color: #888; }
+        .text-center { text-align: center; }
+
+        .empty-row td {
+            text-align: center;
+            padding: 24px;
+            color: #888;
+            font-style: italic;
+        }
+
+        /* Dashboard 2-col */
+        .dash-bottom {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 800px) {
+            .dash-bottom { grid-template-columns: 1fr; }
+            .two-col { grid-template-columns: 1fr; }
+        }
+
+        .quick-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- =================== HEADER =================== -->
+    <header>
+        <div class="brand">
+            <div class="brand-icon">🍽️</div>
+            <div>
+                <h1>DineTrack</h1>
+                <p>Restaurant Management System</p>
+            </div>
+        </div>
+        <div class="header-right">
+            <div class="db-status">🟢 MySQL: dinetrack</div>
+            <button class="btn-refresh" onclick="reloadCurrentTab()">🔄 Refresh</button>
+        </div>
+    </header>
+
+    <!-- =================== NAVIGATION =================== -->
+    <nav>
+        <button class="nav-btn active" onclick="switchTab('dashboard')">📊 Dashboard</button>
+        <button class="nav-btn" onclick="switchTab('pos')">🛒 New Order</button>
+        <button class="nav-btn" onclick="switchTab('orders')">📋 Orders</button>
+        <button class="nav-btn" onclick="switchTab('menu')">🍲 Menu & Stock</button>
+        <button class="nav-btn" onclick="switchTab('payments')">💳 Payments</button>
+        <button class="nav-btn" onclick="switchTab('customers')">👥 Customers</button>
+        <button class="nav-btn" onclick="switchTab('staff')">👨‍🍳 Staff</button>
+        <button class="nav-btn" onclick="switchTab('reports')">📈 Reports</button>
+    </nav>
+
+    <!-- =================== MAIN =================== -->
+    <main>
+
+        <!-- ===== 1. DASHBOARD TAB ===== -->
+        <section id="tab-dashboard" class="tab-content active">
+
+            <!-- Stats Row -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">💰</div>
+                    <div class="stat-info">
+                        <h4>Total Revenue</h4>
+                        <div class="stat-val" id="dash-revenue">₹0</div>
+                        <div class="stat-sub">From completed orders</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📦</div>
+                    <div class="stat-info">
+                        <h4>Total Orders</h4>
+                        <div class="stat-val" id="dash-orders">0</div>
+                        <div class="stat-sub" id="dash-orders-sub">0 Active / 0 Done</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🍲</div>
+                    <div class="stat-info">
+                        <h4>Menu Items</h4>
+                        <div class="stat-val" id="dash-foods">0</div>
+                        <div class="stat-sub" id="dash-foods-sub">Available items</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-info">
+                        <h4>Customers</h4>
+                        <div class="stat-val" id="dash-customers">0</div>
+                        <div class="stat-sub">Registered</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom: Top Dishes + Quick Actions -->
+            <div class="dash-bottom">
+                <div class="card">
+                    <div class="card-title">🏆 Top Selling Dishes</div>
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Dish Name</th>
+                                    <th>Qty Sold</th>
+                                    <th>Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dash-top-foods">
+                                <tr><td colspan="3" class="text-center text-muted">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">⚡ Quick Actions</div>
+                    <div class="quick-actions">
+                        <button class="btn btn-green" onclick="switchTab('pos')">🛒 New Order</button>
+                        <button class="btn btn-gray" onclick="openAddFoodModal()">➕ Add Menu Item</button>
+                        <button class="btn btn-gray" onclick="openAddCustomerModal()">➕ Add Customer</button>
+                        <button class="btn btn-gray" onclick="switchTab('orders')">📋 View Orders</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Orders -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">🕒 Recent Orders</div>
+                    <button class="btn btn-gray btn-sm" onclick="switchTab('orders')">View All →</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Date & Time</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="dash-recent-orders">
+                            <tr><td colspan="7" class="text-center text-muted">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 2. POS / NEW ORDER TAB ===== -->
+        <section id="tab-pos" class="tab-content">
+            <div class="pos-layout">
+                <!-- Left: Food Selection -->
+                <div>
+                    <!-- Search Bar -->
+                    <div class="card" style="padding: 10px 14px; margin-bottom: 10px;">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="pos-search" placeholder="Search food items..." oninput="filterPosMenu()">
+                        </div>
+                    </div>
+
+                    <!-- Category Buttons -->
+                    <div class="category-tabs" id="pos-categories">
+                        <!-- JS will fill this -->
+                    </div>
+
+                    <!-- Food Cards -->
+                    <div class="food-grid" id="pos-menu-grid">
+                        <!-- JS will fill this -->
+                    </div>
+                </div>
+
+                <!-- Right: Cart -->
+                <div class="cart-box">
+                    <h3>🛒 Current Order</h3>
+
+                    <div class="form-group">
+                        <label>Customer</label>
+                        <div style="display:flex; gap:6px; align-items:center;">
+                            <select class="form-control" id="pos-customer-select" style="flex:1;">
+                                <option value="0">Walk-in Customer</option>
+                            </select>
+                            <a href="javascript:void(0)" onclick="openAddCustomerModal()" style="font-size:12px; color:#1a73e8; white-space:nowrap;">+ New</a>
+                        </div>
+                    </div>
+
+                    <div class="two-col">
+                        <div class="form-group">
+                            <label>Order Type</label>
+                            <select id="pos-order-type" onchange="toggleTableInput()">
+                                <option value="DINE_IN">Dine-In</option>
+                                <option value="TAKEAWAY">Takeaway</option>
+                                <option value="DELIVERY">Delivery</option>
+                            </select>
+                        </div>
+                        <div class="form-group" id="pos-table-group">
+                            <label>Table No.</label>
+                            <input type="text" id="pos-table-num" placeholder="e.g. T-4" value="T-1">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Served by (Staff)</label>
+                        <select id="pos-staff-select">
+                            <!-- JS fills this -->
+                        </select>
+                    </div>
+
+                    <!-- Cart Items -->
+                    <div class="cart-items-list" id="pos-cart-items">
+                        <div class="text-muted text-center" style="padding:16px 0; font-size:13px;">
+                            Cart is empty. Click on a dish to add.
+                        </div>
+                    </div>
+
+                    <!-- Pricing -->
+                    <div class="cart-summary">
+                        <div class="summary-row">
+                            <span>Subtotal:</span>
+                            <span id="pos-subtotal">₹0.00</span>
+                        </div>
+
+                        <div class="two-col" style="margin: 8px 0;">
+                            <div class="form-group" style="margin:0;">
+                                <label>Discount (₹)</label>
+                                <input type="number" id="pos-discount" min="0" value="0" step="1" oninput="recalculateCart()">
+                            </div>
+                            <div class="form-group" style="margin:0;">
+                                <label>GST / Tax (%)</label>
+                                <input type="number" id="pos-tax-rate" min="0" max="100" value="5" step="0.5" oninput="recalculateCart()">
+                            </div>
+                        </div>
+
+                        <div class="summary-row">
+                            <span>Tax Amount:</span>
+                            <span id="pos-tax-amount">₹0.00</span>
+                        </div>
+
+                        <div class="summary-total">
+                            <span>Grand Total:</span>
+                            <span id="pos-grand-total">₹0.00</span>
+                        </div>
+
+                        <button class="btn btn-green" style="width:100%; margin-top:12px; justify-content:center; padding:10px;" onclick="submitOrder()">
+                            ✅ Place Order
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 3. ORDERS TAB ===== -->
+        <section id="tab-orders" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">📋 Order History</div>
+                    <div class="row-flex">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="orders-search" placeholder="Search order # or customer..." oninput="filterOrdersTable()">
+                        </div>
+                        <select id="orders-status-filter" style="width:140px;" onchange="filterOrdersTable()">
+                            <option value="ALL">All Statuses</option>
+                            <option value="PLACED">Placed</option>
+                            <option value="PREPARING">Preparing</option>
+                            <option value="READY">Ready</option>
+                            <option value="COMPLETED">Completed</option>
+                            <option value="CANCELLED">Cancelled</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Order #</th>
+                                <th>Customer</th>
+                                <th>Date & Time</th>
+                                <th>Total Bill</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table-body">
+                            <!-- JS fills -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 4. MENU & STOCK TAB ===== -->
+        <section id="tab-menu" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">🍲 Menu & Inventory</div>
+                    <div class="row-flex">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="menu-search" placeholder="Search item..." oninput="filterMenuTable()">
+                        </div>
+                        <select id="menu-cat-filter" style="width:150px;" onchange="filterMenuTable()">
+                            <option value="ALL">All Categories</option>
+                        </select>
+                        <button class="btn btn-green" onclick="openAddFoodModal()">➕ Add Item</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Category</th>
+                                <th>Selling Price</th>
+                                <th>Cost Price</th>
+                                <th>Stock Qty</th>
+                                <th>Available</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="menu-table-body">
+                            <!-- JS fills -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 5. PAYMENTS TAB ===== -->
+        <section id="tab-payments" class="tab-content">
+            <!-- Payment KPI summary cards -->
+            <div class="stats-grid" id="payment-kpi-grid">
+                <!-- JS fills -->
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">💳 Payment Transactions</div>
+                    <div class="row-flex">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="payments-search" placeholder="Search reference..." oninput="filterPaymentsTable()">
+                        </div>
+                        <select id="payments-method-filter" style="width:140px;" onchange="filterPaymentsTable()">
+                            <option value="ALL">All Methods</option>
+                            <option value="CASH">Cash</option>
+                            <option value="CARD">Card</option>
+                            <option value="UPI">UPI</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Payment ID</th>
+                                <th>Order #</th>
+                                <th>Amount</th>
+                                <th>Method</th>
+                                <th>Reference</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="payments-table-body">
+                            <!-- JS fills -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 6. CUSTOMERS TAB ===== -->
+        <section id="tab-customers" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">👥 Customer Directory</div>
+                    <div class="row-flex">
+                        <div class="search-box">
+                            <span>🔍</span>
+                            <input type="text" id="customers-search" placeholder="Search name, phone, email..." oninput="filterCustomersTable()">
+                        </div>
+                        <button class="btn btn-green" onclick="openAddCustomerModal()">➕ Add Customer</button>
+                    </div>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Name</th>
+                                <th>Phone</th>
+                                <th>Email</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customers-table-body">
+                            <!-- JS fills -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 7. STAFF TAB ===== -->
+        <section id="tab-staff" class="tab-content">
+            <div class="card" style="max-width: 700px; margin: 0 auto;">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">👨‍🍳 Staff Members</div>
+                    <button class="btn btn-green" onclick="openAddStaffModal()">➕ Add Staff</button>
+                </div>
+                <div class="table-wrap">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Name</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="staff-table-body">
+                            <!-- JS fills -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ===== 8. REPORTS TAB ===== -->
+        <section id="tab-reports" class="tab-content">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title" style="margin:0;border:none;padding:0;">📈 Business Reports</div>
+                    <button class="btn btn-gray btn-sm" onclick="exportDataToCsv()">📥 Export CSV</button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; margin-top: 10px;">
+                    <!-- Category Report -->
+                    <div>
+                        <h4 style="color: #1a73e8; margin-bottom: 10px;">📂 Sales by Category</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Category</th>
+                                        <th>Qty Sold</th>
+                                        <th>Revenue</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-categories-body">
+                                    <!-- JS fills -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- Payment Method Report -->
+                    <div>
+                        <h4 style="color: #34a853; margin-bottom: 10px;">💳 Payment Method Breakdown</h4>
+                        <div class="table-wrap">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th>Method</th>
+                                        <th>Transactions</th>
+                                        <th>Total Amount</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="report-payments-body">
+                                    <!-- JS fills -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==================== MODALS ==================== -->
+
+    <!-- INVOICE MODAL -->
+    <div id="modal-invoice" class="modal-bg">
+        <div class="modal-box" style="max-width: 600px;">
+            <div class="modal-head">
+                <span>🧾 Bill / Invoice</span>
+                <button class="btn btn-gray btn-sm" onclick="closeModal('modal-invoice')">✕ Close</button>
+            </div>
+            <div class="modal-body">
+                <div id="invoice-print-area" class="invoice-paper">
+                    <div style="text-align:center; margin-bottom: 16px;">
+                        <h2 style="font-size: 20px; letter-spacing: 1px;">DINETRACK RESTAURANT</h2>
+                        <div style="font-size: 12px; color: #666;">Fine Dining & Culinary Experience</div>
+                        <div style="font-size: 12px; color: #666;">GSTIN: 33ABCDE1234F1Z5 | Ph: +91 98765 43210</div>
+                        <div style="margin-top: 8px; font-weight: bold; border-top: 1px dashed #bbb; border-bottom: 1px dashed #bbb; padding: 4px 0; font-size: 14px;">TAX INVOICE</div>
+                    </div>
+
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; font-size: 13px; margin-bottom: 14px; line-height: 1.6;">
+                        <div>
+                            <div><strong>Order #:</strong> <span id="inv-order-id">--</span></div>
+                            <div><strong>Date:</strong> <span id="inv-date">--</span></div>
+                            <div><strong>Server:</strong> <span id="inv-staff">--</span></div>
+                        </div>
+                        <div style="text-align:right;">
+                            <div><strong>Type:</strong> <span id="inv-type">--</span></div>
+                            <div><strong>Table:</strong> <span id="inv-table">--</span></div>
+                            <div><strong>Customer:</strong> <span id="inv-cust-name">--</span></div>
+                        </div>
+                    </div>
+
+                    <table style="width:100%; margin-bottom:12px; font-size:13px;">
+                        <thead>
+                            <tr>
+                                <th style="text-align:left;">Item</th>
+                                <th style="text-align:center;">Qty</th>
+                                <th style="text-align:right;">Rate</th>
+                                <th style="text-align:right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody id="inv-items-body">
+                            <!-- JS fills -->
+                        </tbody>
+                    </table>
+
+                    <div style="border-top: 1px dashed #aaa; padding-top: 8px; font-size: 14px;">
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Subtotal:</span><span id="inv-subtotal">₹0.00</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px; color:red;"><span>Discount:</span><span id="inv-discount">-₹0.00</span></div>
+                        <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>GST / Tax:</span><span id="inv-tax">+₹0.00</span></div>
+                        <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:16px; border-top:2px solid #333; padding-top:6px; margin-top:6px;">
+                            <span>TOTAL PAYABLE:</span><span id="inv-total">₹0.00</span>
+                        </div>
+                    </div>
+
+                    <div id="inv-payment-stamp" style="margin-top:14px; text-align:center; padding:8px; border-radius:4px; font-weight:bold; font-size:13px;"></div>
+                    <div style="text-align:center; margin-top:12px; font-size:12px; color:#888;">Thank you for dining with us! Please visit again 😊</div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-gray" onclick="closeModal('modal-invoice')">Close</button>
+                <button class="btn btn-green" onclick="window.print()">🖨️ Print</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAYMENT MODAL -->
+    <div id="modal-payment" class="modal-bg">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span>💳 Process Payment</span>
+                <button class="btn btn-gray btn-sm" onclick="closeModal('modal-payment')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="pay-order-id">
+
+                <div style="background:#e8f0fe; border:1px solid #90caf9; padding:12px; border-radius:6px; margin-bottom:14px;">
+                    <div style="font-size:13px; color:#555;">Order #<span id="pay-disp-order-id">--</span> for <strong id="pay-disp-customer">--</strong></div>
+                    <div style="font-size:22px; font-weight:bold; color:#1a73e8; margin-top:4px;">Bill: <span id="pay-disp-amount">₹0.00</span></div>
+                </div>
+
+                <div class="form-group">
+                    <label>Select Payment Method</label>
+                    <div class="row-flex">
+                        <button type="button" class="btn btn-gray" id="pay-tab-cash" onclick="selectPayTab('CASH')">💵 Cash</button>
+                        <button type="button" class="btn btn-gray" id="pay-tab-card" onclick="selectPayTab('CARD')">💳 Card</button>
+                        <button type="button" class="btn btn-gray" id="pay-tab-upi"  onclick="selectPayTab('UPI')">📱 UPI</button>
+                    </div>
+                </div>
+
+                <!-- CASH -->
+                <div id="pay-fields-cash">
+                    <div class="form-group">
+                        <label>Cash Given by Customer (₹)</label>
+                        <input type="number" id="pay-tendered" placeholder="Enter amount" oninput="calculateChange()">
+                    </div>
+                    <div style="background:#f8f9fa; border:1px solid #ddd; padding:10px; border-radius:5px; display:flex; justify-content:space-between; font-size:14px;">
+                        <span>Change to Return:</span>
+                        <strong id="pay-change" style="color:#34a853;">₹0.00</strong>
+                    </div>
+                </div>
+
+                <!-- CARD -->
+                <div id="pay-fields-card" style="display:none;">
+                    <div class="form-group">
+                        <label>Card Number (last 4 digits)</label>
+                        <input type="text" id="pay-card-num" placeholder="e.g. 5566" value="5566">
+                    </div>
+                    <div class="form-group">
+                        <label>Cardholder Name</label>
+                        <input type="text" id="pay-card-holder" placeholder="e.g. John Doe" value="Customer Name">
+                    </div>
+                </div>
+
+                <!-- UPI -->
+                <div id="pay-fields-upi" style="display:none;">
+                    <div class="form-group">
+                        <label>UPI ID</label>
+                        <input type="text" id="pay-upi-id" placeholder="e.g. user@okhdfcbank" value="dinetrack@bank">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-gray" onclick="closeModal('modal-payment')">Cancel</button>
+                <button class="btn btn-green" onclick="submitPayment()">✅ Confirm Payment</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT FOOD MODAL -->
+    <div id="modal-add-food" class="modal-bg">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span id="food-modal-title">🍲 Add Menu Item</span>
+                <button class="btn btn-gray btn-sm" onclick="closeModal('modal-add-food')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="food-id">
+                <div class="form-group">
+                    <label>Food Name *</label>
+                    <input type="text" id="food-name" placeholder="e.g. Butter Chicken">
+                </div>
+                <div class="form-group">
+                    <label>Category *</label>
+                    <input type="text" id="food-category" placeholder="e.g. Main Course">
+                </div>
+                <div class="two-col">
+                    <div class="form-group">
+                        <label>Selling Price (₹) *</label>
+                        <input type="number" id="food-price" step="0.5" placeholder="e.g. 250">
+                    </div>
+                    <div class="form-group">
+                        <label>Cost Price (₹)</label>
+                        <input type="number" id="food-cost" step="0.5" placeholder="e.g. 120" value="100">
+                    </div>
+                </div>
+                <div class="two-col">
+                    <div class="form-group">
+                        <label>Stock Qty</label>
+                        <input type="number" id="food-stock" placeholder="e.g. 50" value="50">
+                    </div>
+                    <div class="form-group">
+                        <label>Reorder Level</label>
+                        <input type="number" id="food-reorder" placeholder="e.g. 10" value="10">
+                    </div>
+                </div>
+                <div class="form-group" style="display:flex; align-items:center; gap:8px;">
+                    <input type="checkbox" id="food-available" checked style="width:16px; height:16px;">
+                    <label for="food-available" style="display:inline; cursor:pointer;">Available for ordering</label>
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-gray" onclick="closeModal('modal-add-food')">Cancel</button>
+                <button class="btn btn-green" onclick="saveFoodItem()">💾 Save Item</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD / EDIT CUSTOMER MODAL -->
+    <div id="modal-add-customer" class="modal-bg">
+        <div class="modal-box">
+            <div class="modal-head">
+                <span id="cust-modal-title">👥 Add Customer</span>
+                <button class="btn btn-gray btn-sm" onclick="closeModal('modal-add-customer')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="cust-id">
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="cust-name" placeholder="e.g. Priya Sharma">
+                </div>
+                <div class="form-group">
+                    <label>Phone Number *</label>
+                    <input type="tel" id="cust-phone" placeholder="e.g. 9876543210">
+                </div>
+                <div class="form-group">
+                    <label>Email (Optional)</label>
+                    <input type="email" id="cust-email" placeholder="e.g. priya@example.com">
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-gray" onclick="closeModal('modal-add-customer')">Cancel</button>
+                <button class="btn btn-green" onclick="saveCustomer()">💾 Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ADD STAFF MODAL -->
+    <div id="modal-add-staff" class="modal-bg">
+        <div class="modal-box" style="max-width: 400px;">
+            <div class="modal-head">
+                <span>👨‍🍳 Add Staff Member</span>
+                <button class="btn btn-gray btn-sm" onclick="closeModal('modal-add-staff')">✕</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Staff Name *</label>
+                    <input type="text" id="staff-name-input" placeholder="e.g. Rajesh Kumar">
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-gray" onclick="closeModal('modal-add-staff')">Cancel</button>
+                <button class="btn btn-green" onclick="saveStaff()">Add Staff</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- RESTOCK MODAL -->
+    <div id="modal-restock" class="modal-bg">
+        <div class="modal-box" style="max-width: 380px;">
+            <div class="modal-head">
+                <span>📦 Restock Item</span>
+                <button class="btn btn-gray btn-sm" onclick="closeModal('modal-restock')">✕</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="restock-food-id">
+                <div style="font-size:15px; font-weight:bold; margin-bottom:12px;" id="restock-food-name">--</div>
+                <div class="form-group">
+                    <label>Quantity to Add</label>
+                    <input type="number" id="restock-qty" min="1" value="20">
+                </div>
+            </div>
+            <div class="modal-foot">
+                <button class="btn btn-gray" onclick="closeModal('modal-restock')">Cancel</button>
+                <button class="btn btn-green" onclick="submitRestock()">Add Stock</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container -->
+    <div id="toast-container"></div>
+
+    <!-- =================== JAVASCRIPT =================== -->
+    <script>
+        // --- Global State ---
+        let allFoods = [];
+        let allCustomers = [];
+        let allOrders = [];
+        let allPayments = [];
+        let allStaff = [];
+        let cart = {}; // foodId -> qty
+        let currentTab = 'dashboard';
+        let currentPayMethod = 'CASH';
+        let selectedCategory = 'ALL';
+        let pendingBillAmount = 0;
+
+        // --- Helper: Format rupees ---
+        function formatRs(num) {
+            return '₹' + parseFloat(num || 0).toFixed(2);
+        }
+
+        // --- Helper: Show Toast ---
+        function showToast(msg, type = 'success') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            const icons = { success: '✅', error: '❌', warning: '⚠️' };
+            el.innerHTML = `<span>${icons[type] || 'ℹ️'}</span> <span>${msg}</span>`;
+            container.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transition = 'opacity 0.3s';
+                setTimeout(() => el.remove(), 300);
+            }, 3200);
+        }
+
+        // --- Modal open/close ---
+        function openModal(id) {
+            document.getElementById(id).classList.add('open');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('open');
+        }
+
+        // --- Tab Switching ---
+        function switchTab(tabId) {
+            currentTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(el => el.classList.remove('active'));
+
+            const content = document.getElementById(`tab-${tabId}`);
+            if (content) content.classList.add('active');
+
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                if (btn.getAttribute('onclick')?.includes(tabId)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // Load data for the tab
+            if (tabId === 'dashboard') loadDashboard();
+            else if (tabId === 'pos') loadPos();
+            else if (tabId === 'orders') loadOrders();
+            else if (tabId === 'menu') loadMenu();
+            else if (tabId === 'payments') loadPayments();
+            else if (tabId === 'customers') loadCustomers();
+            else if (tabId === 'staff') loadStaff();
+            else if (tabId === 'reports') loadReports();
+        }
+
+        function reloadCurrentTab() {
+            switchTab(currentTab);
+            showToast('Data refreshed!');
+        }
+
+        // --- Initial Load ---
+        window.addEventListener('DOMContentLoaded', () => {
+            loadDashboard();
+            loadAllCoreData();
+        });
+
+        async function loadAllCoreData() {
+            try {
+                await Promise.all([fetchFoods(), fetchCustomers(), fetchStaff()]);
+                populateCustomerSelect();
+                populateStaffSelect();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        // ==================== 1. DASHBOARD ====================
+        async function loadDashboard() {
+            try {
+                const res = await fetch('/api/reports/summary');
+                const data = await res.json();
+
+                if (data.success) {
+                    document.getElementById('dash-revenue').innerText = formatRs(data.revenue);
+                    document.getElementById('dash-orders').innerText = data.totalOrders;
+                    document.getElementById('dash-orders-sub').innerText = `${data.activeOrders} Active / ${data.completedOrders} Completed`;
+                    document.getElementById('dash-foods').innerText = data.totalFoods;
+                    document.getElementById('dash-customers').innerText = data.totalCustomers;
+
+                    // Top foods table
+                    const topBody = document.getElementById('dash-top-foods');
+                    topBody.innerHTML = '';
+                    if (data.topFoods && data.topFoods.length > 0) {
+                        data.topFoods.forEach(f => {
+                            const tr = document.createElement('tr');
+                            tr.innerHTML = `
+                                <td><strong>${f.name}</strong></td>
+                                <td>${f.qty} sold</td>
+                                <td class="text-green">${formatRs(f.revenue)}</td>
+                            `;
+                            topBody.appendChild(tr);
+                        });
+                    } else {
+                        topBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data yet</td></tr>';
+                    }
+                }
+
+                // Recent orders (last 5)
+                const ordersRes = await fetch('/api/orders');
+                const orders = await ordersRes.json();
+                const recentBody = document.getElementById('dash-recent-orders');
+                recentBody.innerHTML = '';
+                const recents = orders.slice(0, 5);
+                if (recents.length > 0) {
+                    recents.forEach(o => {
+                        const tr = document.createElement('tr');
+                        const statusBadge = `<span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>`;
+                        const paidBadge = o.isPaid ?
+                            `<span class="badge badge-paid">PAID</span>` :
+                            `<span class="badge badge-unpaid">UNPAID</span>`;
+                        tr.innerHTML = `
+                            <td><strong>#${o.orderId}</strong></td>
+                            <td>${o.customerName}</td>
+                            <td>${o.orderTime ? o.orderTime.substring(0, 16) : '--'}</td>
+                            <td class="text-blue">${formatRs(o.totalAmount)}</td>
+                            <td>${statusBadge}</td>
+                            <td>${paidBadge}</td>
+                            <td><button class="btn btn-gray btn-sm" onclick="viewInvoice(${o.orderId})">🧾 Invoice</button></td>
+                        `;
+                        recentBody.appendChild(tr);
+                    });
+                } else {
+                    recentBody.innerHTML = '<tr><td colspan="7" class="text-center text-muted">No recent orders</td></tr>';
+                }
+            } catch (e) {
+                console.error('Dashboard load error:', e);
+            }
+        }
+
+        // ==================== 2. POS ====================
+        async function fetchFoods() {
+            const res = await fetch('/api/foods');
+            allFoods = await res.json();
+            return allFoods;
+        }
+
+        async function fetchCustomers() {
+            const res = await fetch('/api/customers');
+            allCustomers = await res.json();
+            return allCustomers;
+        }
+
+        async function fetchStaff() {
+            const res = await fetch('/api/staff');
+            allStaff = await res.json();
+            return allStaff;
+        }
+
+        function populateCustomerSelect() {
+            const select = document.getElementById('pos-customer-select');
+            select.innerHTML = '<option value="0">Walk-in Customer</option>';
+            allCustomers.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = `${c.name} (${c.phone || 'No phone'})`;
+                select.appendChild(opt);
+            });
+        }
+
+        function populateStaffSelect() {
+            const select = document.getElementById('pos-staff-select');
+            select.innerHTML = '';
+            if (allStaff.length === 0) {
+                select.innerHTML = '<option value="Staff">General Staff</option>';
+            } else {
+                allStaff.forEach(s => {
+                    const opt = document.createElement('option');
+                    opt.value = s;
+                    opt.textContent = s;
+                    select.appendChild(opt);
+                });
+            }
+        }
+
+        async function loadPos() {
+            await Promise.all([fetchFoods(), fetchCustomers(), fetchStaff()]);
+            populateCustomerSelect();
+            populateStaffSelect();
+            renderCategories();
+            renderPosGrid();
+        }
+
+        function renderCategories() {
+            const container = document.getElementById('pos-categories');
+            const cats = ['ALL', ...new Set(allFoods.map(f => f.category))];
+            container.innerHTML = '';
+            cats.forEach(c => {
+                const btn = document.createElement('button');
+                btn.className = `cat-btn ${selectedCategory === c ? 'active' : ''}`;
+                btn.textContent = c === 'ALL' ? '🍽️ All' : c;
+                btn.onclick = () => {
+                    selectedCategory = c;
+                    renderCategories();
+                    renderPosGrid();
+                };
+                container.appendChild(btn);
+            });
+        }
+
+        function renderPosGrid() {
+            const grid = document.getElementById('pos-menu-grid');
+            const term = (document.getElementById('pos-search').value || '').toLowerCase().trim();
+            grid.innerHTML = '';
+
+            const filtered = allFoods.filter(f => {
+                const matchCat = selectedCategory === 'ALL' || f.category === selectedCategory;
+                const matchTerm = !term || f.name.toLowerCase().includes(term);
+                return matchCat && matchTerm;
+            });
+
+            if (filtered.length === 0) {
+                grid.innerHTML = '<div style="grid-column:1/-1; text-align:center; color:#888; padding:24px; font-style:italic;">No food items found.</div>';
+                return;
+            }
+
+            filtered.forEach(f => {
+                const card = document.createElement('div');
+                card.className = 'food-card';
+                const outOfStock = !f.available || f.stock <= 0;
+                if (outOfStock) card.style.opacity = '0.6';
+
+                card.innerHTML = `
+                    <div class="food-card-name">${f.name}</div>
+                    <div class="food-card-cat">${f.category}</div>
+                    <div class="food-card-price">${formatRs(f.price)}</div>
+                    <div class="food-card-stock">${outOfStock ? '<span style="color:red; font-weight:bold;">Out of Stock</span>' : `Stock: ${f.stock}`}</div>
+                    <button class="btn ${outOfStock ? 'btn-gray' : 'btn-green'} btn-sm" ${outOfStock ? 'disabled' : ''} onclick="addToCart(${f.id})">
+                        ${outOfStock ? 'Unavailable' : '+ Add'}
+                    </button>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function filterPosMenu() {
+            renderPosGrid();
+        }
+
+        function toggleTableInput() {
+            const type = document.getElementById('pos-order-type').value;
+            document.getElementById('pos-table-group').style.display = (type === 'DINE_IN') ? 'block' : 'none';
+        }
+
+        function addToCart(foodId) {
+            cart[foodId] = (cart[foodId] || 0) + 1;
+            renderCart();
+        }
+
+        function changeQty(foodId, delta) {
+            if (!cart[foodId]) return;
+            cart[foodId] += delta;
+            if (cart[foodId] <= 0) delete cart[foodId];
+            renderCart();
+        }
+
+        function removeFromCart(foodId) {
+            delete cart[foodId];
+            renderCart();
+        }
+
+        function renderCart() {
+            const container = document.getElementById('pos-cart-items');
+            container.innerHTML = '';
+            const ids = Object.keys(cart);
+
+            if (ids.length === 0) {
+                container.innerHTML = '<div class="text-muted text-center" style="padding:16px 0; font-size:13px;">Cart is empty. Click on a dish to add.</div>';
+                recalculateCart();
+                return;
+            }
+
+            ids.forEach(id => {
+                const food = allFoods.find(f => f.id == id);
+                if (!food) return;
+                const qty = cart[id];
+                const subtotal = food.price * qty;
+
+                const div = document.createElement('div');
+                div.className = 'cart-row';
+                div.innerHTML = `
+                    <div style="flex:1;">
+                        <div style="font-weight:bold; font-size:13px;">${food.name}</div>
+                        <div style="font-size:11px; color:#888;">${formatRs(food.price)} × ${qty} = ${formatRs(subtotal)}</div>
+                    </div>
+                    <div class="qty-ctrl">
+                        <button class="qty-btn" onclick="changeQty(${id}, -1)">-</button>
+                        <span style="font-weight:bold; min-width:18px; text-align:center;">${qty}</span>
+                        <button class="qty-btn" onclick="changeQty(${id}, 1)">+</button>
+                        <button class="qty-btn" style="background:#ea4335; color:white;" onclick="removeFromCart(${id})">✕</button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+
+            recalculateCart();
+        }
+
+        function recalculateCart() {
+            let subtotal = 0;
+            for (const [id, qty] of Object.entries(cart)) {
+                const food = allFoods.find(f => f.id == id);
+                if (food) subtotal += food.price * qty;
+            }
+
+            const discount = parseFloat(document.getElementById('pos-discount').value) || 0;
+            const taxRate = parseFloat(document.getElementById('pos-tax-rate').value) || 0;
+
+            const safeDiscount = Math.min(Math.max(0, discount), subtotal);
+            const taxable = subtotal - safeDiscount;
+            const taxAmount = (taxable * taxRate) / 100.0;
+            const grandTotal = taxable + taxAmount;
+
+            document.getElementById('pos-subtotal').innerText = formatRs(subtotal);
+            document.getElementById('pos-tax-amount').innerText = formatRs(taxAmount);
+            document.getElementById('pos-grand-total').innerText = formatRs(grandTotal);
+        }
+
+        async function submitOrder() {
+            if (Object.keys(cart).length === 0) {
+                showToast('Cart is empty. Add some items first.', 'warning');
+                return;
+            }
+
+            const customerId = parseInt(document.getElementById('pos-customer-select').value) || 0;
+            const orderType = document.getElementById('pos-order-type').value;
+            const tableNumber = orderType === 'DINE_IN' ? document.getElementById('pos-table-num').value.trim() : null;
+            const staffName = document.getElementById('pos-staff-select').value;
+            const discount = parseFloat(document.getElementById('pos-discount').value) || 0;
+            const taxRate = parseFloat(document.getElementById('pos-tax-rate').value) || 0;
+
+            const payload = { customerId, orderType, tableNumber, staffName, discount, taxRate, items: cart };
+
+            try {
+                const res = await fetch('/api/orders', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Order #${data.orderId} placed!`);
+                    cart = {};
+                    renderCart();
+                    await fetchFoods();
+                    renderPosGrid();
+                    viewInvoice(data.orderId);
+                } else {
+                    showToast(data.error || 'Failed to place order.', 'error');
+                }
+            } catch (e) {
+                showToast('Network error: ' + e.message, 'error');
+            }
+        }
+
+        // ==================== 3. ORDERS ====================
+        async function loadOrders() {
+            try {
+                const res = await fetch('/api/orders');
+                allOrders = await res.json();
+                renderOrdersTable();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderOrdersTable() {
+            const body = document.getElementById('orders-table-body');
+            const term = (document.getElementById('orders-search').value || '').toLowerCase().trim();
+            const statusFilter = document.getElementById('orders-status-filter').value;
+
+            body.innerHTML = '';
+            const filtered = allOrders.filter(o => {
+                const matchStatus = statusFilter === 'ALL' || o.status === statusFilter;
+                const matchTerm = !term || o.orderId.toString().includes(term) || (o.customerName && o.customerName.toLowerCase().includes(term));
+                return matchStatus && matchTerm;
+            });
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="7" class="text-center text-muted" style="padding:20px;">No orders found.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(o => {
+                const tr = document.createElement('tr');
+                const statusBadge = `<span class="badge badge-${o.status.toLowerCase()}">${o.status}</span>`;
+                const paidBadge = o.isPaid ?
+                    `<span class="badge badge-paid">PAID (${o.paymentMethod || 'SUCCESS'})</span>` :
+                    `<span class="badge badge-unpaid">UNPAID</span>`;
+
+                let nextBtn = '';
+                if (o.status === 'PLACED')     nextBtn = `<button class="btn btn-gray btn-sm" onclick="advanceOrderStatus(${o.orderId}, 'PREPARING')">▶ Cook</button>`;
+                else if (o.status === 'PREPARING') nextBtn = `<button class="btn btn-gray btn-sm" onclick="advanceOrderStatus(${o.orderId}, 'READY')">▶ Ready</button>`;
+                else if (o.status === 'READY')     nextBtn = `<button class="btn btn-green btn-sm" onclick="advanceOrderStatus(${o.orderId}, 'COMPLETED')">✔ Done</button>`;
+
+                let payBtn = '';
+                if (!o.isPaid && o.status !== 'CANCELLED') {
+                    payBtn = `<button class="btn btn-orange btn-sm" onclick="openPaymentModal(${o.orderId}, '${o.customerName}', ${o.totalAmount})">💳 Pay</button>`;
+                }
+
+                let cancelBtn = '';
+                if (o.status !== 'COMPLETED' && o.status !== 'CANCELLED') {
+                    cancelBtn = `<button class="btn btn-red btn-sm" onclick="advanceOrderStatus(${o.orderId}, 'CANCELLED')">✕ Cancel</button>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>#${o.orderId}</strong></td>
+                    <td>${o.customerName}</td>
+                    <td>${o.orderTime ? o.orderTime.substring(0, 16) : '--'}</td>
+                    <td class="text-blue">${formatRs(o.totalAmount)}</td>
+                    <td>${statusBadge}</td>
+                    <td>${paidBadge}</td>
+                    <td>
+                        <div class="row-flex" style="gap:4px;">
+                            <button class="btn btn-gray btn-sm" onclick="viewInvoice(${o.orderId})">🧾 Invoice</button>
+                            ${nextBtn}
+                            ${payBtn}
+                            ${cancelBtn}
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function filterOrdersTable() { renderOrdersTable(); }
+
+        async function advanceOrderStatus(orderId, newStatus) {
+            try {
+                const res = await fetch('/api/orders/status', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ orderId, status: newStatus })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Order #${orderId} → ${newStatus}`);
+                    loadOrders();
+                } else {
+                    showToast(data.error || 'Failed to update status.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function viewInvoice(orderId) {
+            try {
+                const res = await fetch(`/api/orders/details?id=${orderId}`);
+                const data = await res.json();
+                if (!data.success) {
+                    showToast('Failed to load invoice.', 'error');
+                    return;
+                }
+
+                const ord = data.order;
+                const billing = data.billing || {};
+                const customer = data.customer || {};
+                const payment = data.payment;
+
+                document.getElementById('inv-order-id').innerText = '#' + ord.orderId;
+                document.getElementById('inv-date').innerText = ord.orderTime ? ord.orderTime.substring(0, 16) : '--';
+                document.getElementById('inv-staff').innerText = billing.staff_name || 'Staff';
+                document.getElementById('inv-type').innerText = billing.order_type || 'TAKEAWAY';
+                document.getElementById('inv-table').innerText = billing.table_number || 'N/A';
+                document.getElementById('inv-cust-name').innerText = ord.customerName + (customer.phone ? ` (${customer.phone})` : '');
+
+                const itemsBody = document.getElementById('inv-items-body');
+                itemsBody.innerHTML = '';
+                if (ord.items && ord.items.length > 0) {
+                    ord.items.forEach(it => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${it.foodName}</td>
+                            <td style="text-align:center;">${it.quantity}</td>
+                            <td style="text-align:right;">${formatRs(it.unitPrice)}</td>
+                            <td style="text-align:right;">${formatRs(it.unitPrice * it.quantity)}</td>
+                        `;
+                        itemsBody.appendChild(tr);
+                    });
+                }
+
+                document.getElementById('inv-subtotal').innerText = formatRs(billing.subtotal || ord.totalAmount);
+                document.getElementById('inv-discount').innerText = '-' + formatRs(billing.discount_amount || 0);
+                document.getElementById('inv-tax').innerText = '+' + formatRs(billing.tax_amount || 0) + (billing.tax_rate ? ` (${billing.tax_rate}%)` : '');
+                document.getElementById('inv-total').innerText = formatRs(ord.totalAmount);
+
+                const stamp = document.getElementById('inv-payment-stamp');
+                if (payment && payment.paymentStatus === 'SUCCESS') {
+                    stamp.style.background = '#d1e7dd';
+                    stamp.style.color = '#0a3622';
+                    stamp.style.border = '1px solid #198754';
+                    stamp.innerHTML = `✅ PAID via ${payment.paymentMethod} (Ref: ${payment.referenceCode})`;
+                } else if (payment && payment.paymentStatus === 'REFUNDED') {
+                    stamp.style.background = '#e2e3e5';
+                    stamp.style.color = '#383d41';
+                    stamp.style.border = '1px solid #adb5bd';
+                    stamp.innerHTML = `↩️ REFUNDED (${payment.paymentMethod})`;
+                } else {
+                    stamp.style.background = '#f8d7da';
+                    stamp.style.color = '#842029';
+                    stamp.style.border = '1px solid #dc3545';
+                    stamp.innerHTML = `⚠️ PAYMENT PENDING <button class="btn btn-orange btn-sm" style="margin-left:8px;" onclick="closeModal('modal-invoice'); openPaymentModal(${ord.orderId}, '${ord.customerName}', ${ord.totalAmount})">💳 Pay Now</button>`;
+                }
+
+                openModal('modal-invoice');
+            } catch (e) {
+                console.error(e);
+                showToast('Error loading invoice.', 'error');
+            }
+        }
+
+        // ==================== 4. FOOD MENU ====================
+        async function loadMenu() {
+            await fetchFoods();
+            renderCategoryFilter();
+            renderMenuTable();
+        }
+
+        function renderCategoryFilter() {
+            const select = document.getElementById('menu-cat-filter');
+            const cats = ['ALL', ...new Set(allFoods.map(f => f.category))];
+            select.innerHTML = '';
+            cats.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c;
+                opt.textContent = c === 'ALL' ? 'All Categories' : c;
+                select.appendChild(opt);
+            });
+        }
+
+        function renderMenuTable() {
+            const body = document.getElementById('menu-table-body');
+            const term = (document.getElementById('menu-search').value || '').toLowerCase().trim();
+            const cat = document.getElementById('menu-cat-filter').value;
+
+            body.innerHTML = '';
+            const filtered = allFoods.filter(f => {
+                const matchCat = cat === 'ALL' || f.category === cat;
+                const matchTerm = !term || f.name.toLowerCase().includes(term);
+                return matchCat && matchTerm;
+            });
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:20px;">No items found.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(f => {
+                const tr = document.createElement('tr');
+                const lowStock = f.stock <= (f.reorderLevel || 10);
+                const stockDisplay = lowStock ?
+                    `<span class="badge badge-cancelled">${f.stock} Low!</span>` :
+                    `<span class="badge badge-completed">${f.stock}</span>`;
+
+                tr.innerHTML = `
+                    <td><strong>#${f.id}</strong></td>
+                    <td><strong>${f.name}</strong></td>
+                    <td><span class="badge" style="background:#e8f0fe; color:#1a73e8; border:1px solid #90caf9;">${f.category}</span></td>
+                    <td class="text-blue">${formatRs(f.price)}</td>
+                    <td class="text-muted">${formatRs(f.costPrice || 0)}</td>
+                    <td>${stockDisplay}</td>
+                    <td>
+                        <button class="btn btn-sm ${f.available ? 'btn-green' : 'btn-gray'}" onclick="toggleFoodAvailable(${f.id})">
+                            ${f.available ? '✓ Yes' : '✕ No'}
+                        </button>
+                    </td>
+                    <td>
+                        <div class="row-flex" style="gap:4px;">
+                            <button class="btn btn-gray btn-sm" onclick="openRestockModal(${f.id}, '${f.name.replace(/'/g, "\\'")}')">📦 Stock</button>
+                            <button class="btn btn-gray btn-sm" onclick="openEditFoodModal(${f.id})">✏️ Edit</button>
+                            <button class="btn btn-red btn-sm" onclick="deleteFood(${f.id})">🗑️</button>
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function filterMenuTable() { renderMenuTable(); }
+
+        function openAddFoodModal() {
+            document.getElementById('food-modal-title').innerText = '🍲 Add Menu Item';
+            document.getElementById('food-id').value = '';
+            document.getElementById('food-name').value = '';
+            document.getElementById('food-category').value = '';
+            document.getElementById('food-price').value = '';
+            document.getElementById('food-cost').value = '100';
+            document.getElementById('food-stock').value = '50';
+            document.getElementById('food-reorder').value = '10';
+            document.getElementById('food-available').checked = true;
+            openModal('modal-add-food');
+        }
+
+        function openEditFoodModal(id) {
+            const f = allFoods.find(item => item.id == id);
+            if (!f) return;
+            document.getElementById('food-modal-title').innerText = '✏️ Edit Menu Item';
+            document.getElementById('food-id').value = f.id;
+            document.getElementById('food-name').value = f.name;
+            document.getElementById('food-category').value = f.category;
+            document.getElementById('food-price').value = f.price;
+            document.getElementById('food-cost').value = f.costPrice || 100;
+            document.getElementById('food-stock').value = f.stock || 50;
+            document.getElementById('food-reorder').value = f.reorderLevel || 10;
+            document.getElementById('food-available').checked = f.available;
+            openModal('modal-add-food');
+        }
+
+        async function saveFoodItem() {
+            const id = document.getElementById('food-id').value;
+            const name = document.getElementById('food-name').value.trim();
+            const category = document.getElementById('food-category').value.trim();
+            const price = parseFloat(document.getElementById('food-price').value);
+            const cost = parseFloat(document.getElementById('food-cost').value) || 0;
+            const stock = parseInt(document.getElementById('food-stock').value) || 0;
+            const reorderLevel = parseInt(document.getElementById('food-reorder').value) || 10;
+            const available = document.getElementById('food-available').checked;
+
+            if (!name || !category || isNaN(price) || price <= 0) {
+                showToast('Please fill in name, category, and a valid price.', 'warning');
+                return;
+            }
+
+            const payload = { id: id ? parseInt(id) : 0, name, category, price, cost, stock, reorderLevel, available };
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch('/api/foods', {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(id ? 'Item updated!' : 'Item added!');
+                    closeModal('modal-add-food');
+                    loadMenu();
+                } else {
+                    showToast(data.error || 'Save failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function toggleFoodAvailable(id) {
+            try {
+                const res = await fetch(`/api/foods/toggle?id=${id}`, { method: 'POST' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Availability updated!');
+                    loadMenu();
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        function openRestockModal(id, name) {
+            document.getElementById('restock-food-id').value = id;
+            document.getElementById('restock-food-name').innerText = name;
+            document.getElementById('restock-qty').value = '20';
+            openModal('modal-restock');
+        }
+
+        async function submitRestock() {
+            const foodId = parseInt(document.getElementById('restock-food-id').value);
+            const qty = parseInt(document.getElementById('restock-qty').value);
+            if (isNaN(qty) || qty <= 0) {
+                showToast('Enter a valid positive quantity.', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/foods/stock', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ foodId, quantity: qty })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Added ${qty} units to stock!`);
+                    closeModal('modal-restock');
+                    loadMenu();
+                } else {
+                    showToast(data.error || 'Failed to update stock.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteFood(id) {
+            if (!confirm(`Delete food item #${id}?`)) return;
+            try {
+                const res = await fetch(`/api/foods?id=${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Item deleted.');
+                    loadMenu();
+                } else {
+                    showToast(data.error || 'Delete failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        // ==================== 5. PAYMENTS ====================
+        async function loadPayments() {
+            try {
+                const res = await fetch('/api/payments');
+                allPayments = await res.json();
+                renderPaymentKpis();
+                renderPaymentsTable();
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        function renderPaymentKpis() {
+            const grid = document.getElementById('payment-kpi-grid');
+            let totalSuccess = 0, cash = 0, card = 0, upi = 0;
+
+            allPayments.forEach(p => {
+                if (p.paymentStatus === 'SUCCESS') {
+                    totalSuccess += p.amount;
+                    if (p.paymentMethod === 'CASH') cash += p.amount;
+                    else if (p.paymentMethod === 'CARD') card += p.amount;
+                    else if (p.paymentMethod === 'UPI') upi += p.amount;
+                }
+            });
+
+            grid.innerHTML = `
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#d1e7dd;">💰</div>
+                    <div class="stat-info"><h4>Total Collected</h4><div class="stat-val">${formatRs(totalSuccess)}</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#fff3cd;">💵</div>
+                    <div class="stat-info"><h4>Cash</h4><div class="stat-val">${formatRs(cash)}</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#cce5ff;">💳</div>
+                    <div class="stat-info"><h4>Card</h4><div class="stat-val">${formatRs(card)}</div></div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon" style="background:#d4edda;">📱</div>
+                    <div class="stat-info"><h4>UPI</h4><div class="stat-val">${formatRs(upi)}</div></div>
+                </div>
+            `;
+        }
+
+        function renderPaymentsTable() {
+            const body = document.getElementById('payments-table-body');
+            const term = (document.getElementById('payments-search').value || '').toLowerCase().trim();
+            const methodFilter = document.getElementById('payments-method-filter').value;
+
+            body.innerHTML = '';
+            const filtered = allPayments.filter(p => {
+                const matchMethod = methodFilter === 'ALL' || p.paymentMethod === methodFilter;
+                const matchTerm = !term || p.referenceCode.toLowerCase().includes(term) || p.orderId.toString().includes(term);
+                return matchMethod && matchTerm;
+            });
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="8" class="text-center text-muted" style="padding:20px;">No payments found.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(p => {
+                const tr = document.createElement('tr');
+                const statusBadge = p.paymentStatus === 'SUCCESS' ?
+                    `<span class="badge badge-paid">SUCCESS</span>` :
+                    `<span class="badge badge-refunded">REFUNDED</span>`;
+
+                const refundBtn = p.paymentStatus === 'SUCCESS' ?
+                    `<button class="btn btn-red btn-sm" onclick="refundPayment(${p.paymentId})">↩️ Refund</button>` :
+                    `<span class="text-muted" style="font-size:12px;">Refunded</span>`;
+
+                tr.innerHTML = `
+                    <td><strong>#${p.paymentId}</strong></td>
+                    <td><strong>#${p.orderId}</strong></td>
+                    <td class="text-green">${formatRs(p.amount)}</td>
+                    <td><span class="badge" style="background:#e8f0fe; color:#1a73e8; border:1px solid #90caf9;">${p.paymentMethod}</span></td>
+                    <td style="font-family:monospace; font-size:12px;">${p.referenceCode}</td>
+                    <td>${statusBadge}</td>
+                    <td>${p.paymentTime ? p.paymentTime.substring(0, 16) : '--'}</td>
+                    <td>${refundBtn}</td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function filterPaymentsTable() { renderPaymentsTable(); }
+
+        function openPaymentModal(orderId, customerName, billAmount) {
+            document.getElementById('pay-order-id').value = orderId;
+            document.getElementById('pay-disp-order-id').innerText = orderId;
+            document.getElementById('pay-disp-customer').innerText = customerName || 'Walk-in';
+            document.getElementById('pay-disp-amount').innerText = formatRs(billAmount);
+            pendingBillAmount = billAmount;
+            document.getElementById('pay-tendered').value = billAmount;
+            calculateChange();
+            selectPayTab('CASH');
+            openModal('modal-payment');
+        }
+
+        function selectPayTab(method) {
+            currentPayMethod = method;
+            ['CASH', 'CARD', 'UPI'].forEach(m => {
+                const btn = document.getElementById(`pay-tab-${m.toLowerCase()}`);
+                const fields = document.getElementById(`pay-fields-${m.toLowerCase()}`);
+                if (m === method) {
+                    btn.style.background = '#1a73e8';
+                    btn.style.color = 'white';
+                    fields.style.display = 'block';
+                } else {
+                    btn.style.background = '';
+                    btn.style.color = '';
+                    btn.className = 'btn btn-gray';
+                    fields.style.display = 'none';
+                }
+            });
+        }
+
+        function calculateChange() {
+            const tendered = parseFloat(document.getElementById('pay-tendered').value) || 0;
+            const change = Math.max(0, tendered - pendingBillAmount);
+            document.getElementById('pay-change').innerText = formatRs(change);
+        }
+
+        async function submitPayment() {
+            const orderId = parseInt(document.getElementById('pay-order-id').value);
+            const method = currentPayMethod;
+            const tendered = parseFloat(document.getElementById('pay-tendered').value) || pendingBillAmount;
+            const cardNumber = document.getElementById('pay-card-num').value.trim();
+            const cardHolder = document.getElementById('pay-card-holder').value.trim();
+            const upiId = document.getElementById('pay-upi-id').value.trim();
+
+            if (method === 'CASH' && tendered < pendingBillAmount) {
+                showToast('Cash given is less than bill amount.', 'warning');
+                return;
+            }
+
+            const payload = { orderId, method, tendered, cardNumber, cardHolder, upiId };
+
+            try {
+                const res = await fetch('/api/payments', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(`Payment done! Ref: ${data.referenceCode}`);
+                    closeModal('modal-payment');
+                    loadOrders();
+                    loadPayments();
+                } else {
+                    showToast(data.error || 'Payment failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function refundPayment(paymentId) {
+            if (!confirm(`Refund payment #${paymentId}?`)) return;
+            try {
+                const res = await fetch('/api/payments/refund', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Refund processed!');
+                    loadPayments();
+                    loadOrders();
+                } else {
+                    showToast(data.error || 'Refund failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        // ==================== 6. CUSTOMERS ====================
+        async function loadCustomers() {
+            await fetchCustomers();
+            renderCustomersTable();
+        }
+
+        function renderCustomersTable() {
+            const body = document.getElementById('customers-table-body');
+            const term = (document.getElementById('customers-search').value || '').toLowerCase().trim();
+            body.innerHTML = '';
+
+            const filtered = allCustomers.filter(c =>
+                !term || c.name.toLowerCase().includes(term) ||
+                (c.phone && c.phone.includes(term)) ||
+                (c.email && c.email.toLowerCase().includes(term))
+            );
+
+            if (filtered.length === 0) {
+                body.innerHTML = '<tr><td colspan="5" class="text-center text-muted" style="padding:20px;">No customers found.</td></tr>';
+                return;
+            }
+
+            filtered.forEach(c => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>#${c.id}</strong></td>
+                    <td><strong>${c.name}</strong></td>
+                    <td>${c.phone || '--'}</td>
+                    <td>${c.email || '--'}</td>
+                    <td>
+                        <div class="row-flex" style="gap:4px;">
+                            <button class="btn btn-gray btn-sm" onclick="openEditCustomerModal(${c.id})">✏️ Edit</button>
+                            <button class="btn btn-red btn-sm" onclick="deleteCustomer(${c.id})">🗑️ Delete</button>
+                        </div>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function filterCustomersTable() { renderCustomersTable(); }
+
+        function openAddCustomerModal() {
+            document.getElementById('cust-modal-title').innerText = '👥 Add Customer';
+            document.getElementById('cust-id').value = '';
+            document.getElementById('cust-name').value = '';
+            document.getElementById('cust-phone').value = '';
+            document.getElementById('cust-email').value = '';
+            openModal('modal-add-customer');
+        }
+
+        function openEditCustomerModal(id) {
+            const c = allCustomers.find(item => item.id == id);
+            if (!c) return;
+            document.getElementById('cust-modal-title').innerText = '✏️ Edit Customer';
+            document.getElementById('cust-id').value = c.id;
+            document.getElementById('cust-name').value = c.name;
+            document.getElementById('cust-phone').value = c.phone || '';
+            document.getElementById('cust-email').value = c.email || '';
+            openModal('modal-add-customer');
+        }
+
+        async function saveCustomer() {
+            const id = document.getElementById('cust-id').value;
+            const name = document.getElementById('cust-name').value.trim();
+            const phone = document.getElementById('cust-phone').value.trim();
+            const email = document.getElementById('cust-email').value.trim();
+
+            if (!name || !phone) {
+                showToast('Name and phone number are required.', 'warning');
+                return;
+            }
+
+            const payload = { id: id ? parseInt(id) : 0, name, phone, email };
+            const method = id ? 'PUT' : 'POST';
+
+            try {
+                const res = await fetch('/api/customers', {
+                    method,
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast(id ? 'Customer updated!' : 'Customer added!');
+                    closeModal('modal-add-customer');
+                    await fetchCustomers();
+                    populateCustomerSelect();
+                    renderCustomersTable();
+                } else {
+                    showToast(data.error || 'Failed to save.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function deleteCustomer(id) {
+            if (!confirm(`Delete customer #${id}?`)) return;
+            try {
+                const res = await fetch(`/api/customers?id=${id}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Customer removed.');
+                    loadCustomers();
+                } else {
+                    showToast(data.error || 'Failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        // ==================== 7. STAFF ====================
+        async function loadStaff() {
+            await fetchStaff();
+            renderStaffTable();
+        }
+
+        function renderStaffTable() {
+            const body = document.getElementById('staff-table-body');
+            body.innerHTML = '';
+
+            if (allStaff.length === 0) {
+                body.innerHTML = '<tr><td colspan="4" class="text-center text-muted" style="padding:20px;">No staff records.</td></tr>';
+                return;
+            }
+
+            allStaff.forEach((name, idx) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${idx + 1}</strong></td>
+                    <td><strong>${name}</strong></td>
+                    <td><span class="badge badge-completed">Active</span></td>
+                    <td>
+                        <button class="btn btn-red btn-sm" onclick="deactivateStaff('${name.replace(/'/g, "\\'")}')">Remove</button>
+                    </td>
+                `;
+                body.appendChild(tr);
+            });
+        }
+
+        function openAddStaffModal() {
+            document.getElementById('staff-name-input').value = '';
+            openModal('modal-add-staff');
+        }
+
+        async function saveStaff() {
+            const name = document.getElementById('staff-name-input').value.trim();
+            if (!name) {
+                showToast('Enter staff name.', 'warning');
+                return;
+            }
+
+            try {
+                const res = await fetch('/api/staff', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Staff added!');
+                    closeModal('modal-add-staff');
+                    loadStaff();
+                } else {
+                    showToast(data.error || 'Failed to add staff.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        async function deactivateStaff(name) {
+            if (!confirm(`Remove staff member "${name}"?`)) return;
+            try {
+                const res = await fetch(`/api/staff?name=${encodeURIComponent(name)}`, { method: 'DELETE' });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Staff removed.');
+                    loadStaff();
+                } else {
+                    showToast(data.error || 'Failed.', 'error');
+                }
+            } catch (e) {
+                showToast('Error: ' + e.message, 'error');
+            }
+        }
+
+        // ==================== 8. REPORTS ====================
+        async function loadReports() {
+            try {
+                const res = await fetch('/api/reports/summary');
+                const data = await res.json();
+
+                // Category breakdown
+                const catBody = document.getElementById('report-categories-body');
+                catBody.innerHTML = '';
+                if (data.categories && data.categories.length > 0) {
+                    data.categories.forEach(c => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${c.category}</strong></td>
+                            <td>${c.itemsSold} items</td>
+                            <td class="text-green">${formatRs(c.revenue)}</td>
+                        `;
+                        catBody.appendChild(tr);
+                    });
+                } else {
+                    catBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No data</td></tr>';
+                }
+
+                // Payment breakdown
+                const payBody = document.getElementById('report-payments-body');
+                payBody.innerHTML = '';
+                if (data.paymentMethods && data.paymentMethods.length > 0) {
+                    data.paymentMethods.forEach(p => {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><span class="badge" style="background:#e8f0fe; color:#1a73e8; border:1px solid #90caf9;">${p.method}</span></td>
+                            <td>${p.count} transactions</td>
+                            <td class="text-blue">${formatRs(p.total)}</td>
+                        `;
+                        payBody.appendChild(tr);
+                    });
+                } else {
+                    payBody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">No payment records</td></tr>';
+                }
+            } catch (e) {
+                console.error(e);
+                showToast('Error loading reports.', 'error');
+            }
+        }
+
+        function exportDataToCsv() {
+            let csv = "Order ID,Customer,Order Time,Status,Total Amount\n";
+            allOrders.forEach(o => {
+                csv += `"${o.orderId}","${o.customerName}","${o.orderTime}","${o.status}","${o.totalAmount}"\n`;
+            });
+
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', `dinetrack_orders_${Date.now()}.csv`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            showToast('Orders exported to CSV!');
+        }
+
+    </script>
+</body>
+</html>
